@@ -12,18 +12,18 @@ add_dependencies(proto_plotly_cpp proto_plotly_py)
 
 target_include_directories(
         proto_plotly_cpp PUBLIC
-         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
 install(
-    TARGETS proto_plotly_cpp
-    EXPORT ${PROJECT_NAME}Targets
-    LIBRARY DESTINATION ${INSTALL_LIB_DIR}
-    PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR}
-    INCLUDES DESTINATION ${INSTALL_INCLUDE_DIR}
+        TARGETS proto_plotly_cpp
+        EXPORT ${PROJECT_NAME}Targets
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR}
+        INCLUDES DESTINATION ${INSTALL_INCLUDE_DIR}
 )
 
 export(
-    TARGETS proto_plotly_cpp
-    APPEND FILE "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
+        TARGETS proto_plotly_cpp
+        APPEND FILE "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
 )
