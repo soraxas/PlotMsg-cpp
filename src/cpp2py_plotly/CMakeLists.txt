@@ -20,6 +20,11 @@ set(
 add_library(cpp2py_plotly ${SOURCE_FILES})
 target_link_libraries(cpp2py_plotly ${LINK_LIBARARIES})
 
+target_include_directories(cpp2py_plotly PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:>  # <prefix>/include/mylib
+)
+
 # Installation setup
 set_target_properties(
         cpp2py_plotly
