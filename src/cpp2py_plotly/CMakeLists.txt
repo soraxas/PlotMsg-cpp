@@ -9,8 +9,12 @@ set(
 )
 set(
     LINK_LIBARARIES
-#    ${CMAKE_THREAD_LIBS}
+    proto_plotly_cpp
+    ${Protobuf_LIBRARIES}
+    zmq
+    ${ZMQ_LIBRARIES}
 )
+
 
 # Build library
 add_library( cpp2py_plotly ${SOURCE_FILES} )

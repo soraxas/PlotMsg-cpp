@@ -2,7 +2,7 @@
 #include <iostream>
 #include <thread>
 
-#include <build/msg.pb.h>
+#include <msg.pb.h>
 
 #include <utility>
 #include <zmq.hpp>

@@ -34,21 +34,12 @@ find_package(Protobuf)
 # Use local include and library directories
 include_directories(
         ${BASE_DIR}/src
+        ${BASE_DIR}/src/cpp2py_plotly
         ${ZMQ_INCLUDE_DIRS}
         ${Protobuf_INCLUDE_DIR}
         ${PROJECT_SOURCE_DIR}
 )
 link_directories(${BASE_DIR}/lib)
-
-# gen protobuf
-PROTOBUF_GENERATE_CPP(PROTO_SRC PROTO_HEADER msg.proto)
-ADD_LIBRARY(proto ${PROTO_HEADER} ${PROTO_SRC})
-
-PROTOBUF_GENERATE_PYTHON(PROTO_PY msg.proto)
-add_custom_target(pyMsgTarget ALL DEPENDS ${PROTO_PY})
-# add dependencies to auto build py m_msg when cpp m_msg updates
-add_dependencies(proto pyMsgTarget)
-
 
 # +-----------------------------------------------------------------------------
 # | Custom targets and macros
@@ -80,15 +71,12 @@ endif ()
 # | Compile code
 # +-----------------------------------------------------------------------------
 
-add_subdirectory(src)
+add_subdirectory(src/protobuf_msg)
+add_subdirectory(src/cpp2py_plotly)
 
+# demo
 add_executable(pub "publisher.cpp")
-target_link_libraries(pub
-        proto
-        cpp2py_plotly
-        ${Protobuf_LIBRARIES}
-        zmq
-        ${ZMQ_LIBRARIES})
+target_link_libraries(pub cpp2py_plotly)
 
 # +-----------------------------------------------------------------------------
 # | Installation setup
@@ -96,7 +84,7 @@ target_link_libraries(pub
 
 # Export the package for use from the build tree. This
 # registers the build tree with a global CMake registry.
-#export( PACKAGE ${PROJECT_NAME} )
+export(PACKAGE ${PROJECT_NAME})
 
 # Determine the relative path between CMake configuration file installation
 # location and header files installation directory
