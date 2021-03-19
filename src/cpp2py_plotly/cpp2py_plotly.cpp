@@ -7,10 +7,6 @@ namespace Plotly {
 ////////////////////////////////////////
 Dictionary::Dictionary() { reset(); }
 
-template <typename T>
-void Dictionary::add_kwargs(std::string key, const T &value) {
-  dictmsg_add_kwargs(m_msg->mutable_data(), key, value);
-}
 void Dictionary::reset() { m_msg = std::make_unique<DictionaryMsg>(); }
 
 DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
@@ -19,16 +15,6 @@ DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
 // implementation of Plotly Figure
 ////////////////////////////////////////
 Figure::Figure(std::string uuid) : uuid(std::move(uuid)) { reset(); }
-
-template <typename T>
-void Figure::add_kwargs(const std::string &key, const T &value) {
-  dictmsg_add_kwargs(msg.mutable_kwargs()->mutable_data(), key, value);
-}
-
-template <typename T>
-void Figure::add_kwargs(const std::string &key, T &value) {
-  dictmsg_add_kwargs(msg.mutable_kwargs()->mutable_data(), key, value);
-}
 
 void Figure::send(zmq::send_flags send_flags) {
   initialise_publisher();
@@ -94,6 +80,11 @@ void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
 void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
                         const std::vector<int> &value) {
   (*msg)[key].set_allocated_series_i(vec_to_allocated_seriesI(value));
+}
+
+void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
+                        Plotly::Dictionary &value) {
+  (*msg)[key].set_allocated_dict(value.release_ptr());
 }
 //////////////////////////////////////////////////////////////////////////
 }; // namespace Plotly
