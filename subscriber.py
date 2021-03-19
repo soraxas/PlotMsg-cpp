@@ -5,6 +5,7 @@ import time
 import numpy as np
 
 sys.path.append(os.getcwd() + '/build')
+sys.path.append(os.getcwd() + '/build/src/protobuf_msg')
 import msg_pb2
 from msg_pb2 import *
 
@@ -25,7 +26,7 @@ def unpack_plotly_msg(inputs):
             return unpack(getattr(inputs, inputs.WhichOneof('value')))
         elif type(inputs) in (msg_pb2.SeriesI, msg_pb2.SeriesD):
             return np.array(inputs.data)
-        elif type(inputs) in (bool, str, float):
+        elif type(inputs) in (bool, str, float, int):
             return inputs
         else:
             raise RuntimeError("Unrecognised type {}".format(type(inputs)))
