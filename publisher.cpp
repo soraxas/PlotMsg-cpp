@@ -4,14 +4,35 @@
 
 int main(int argc, char *argv[]) {
 
+  auto x = std::vector<double>(20, 1);
+  auto y = std::vector<double>(20, 4.2);
+  auto o = std::vector<int>(20, 7);
+
+  using ditem = Plotly::Dictionary::DictionaryItemPair;
+
   Plotly::initialise_publisher();
+
   Plotly::Figure fig;
 
-  fig.add_kwargs("x", std::vector<double>(3, 2));
-  fig.add_kwargs("y", std::vector<int>(7, 4));
-  fig.add_kwargs("z", std::vector<double>(2, 2.3223));
-
-  fig.add_kwargs("type", "lol");
+  fig.set_uuid("test_1");
+  fig.set_kwargs(                  //
+      Plotly::Dictionary(          //
+          ditem("mode", "marker"), //
+          ditem("x", x),           //
+          ditem("y", y),           //
+          ditem("markers",
+                Plotly::Dictionary(                                    //
+                    ditem("size", 20),                                 //
+                    ditem("opacity", 0.5),                             //
+                    ditem("colorscale", "Viridis"),                    //
+                    ditem("colorbar", Plotly::Dictionary("title",      //
+                                                         "Colorbar")), //
+                    ditem("color", o)                                  //
+                    )                                                  //
+                )                                                      //
+          ));
+  std::cout << fig.get_kwargs() << std::endl;
+  fig.send();
 
   Plotly::Dictionary dict;
 
@@ -23,7 +44,6 @@ int main(int argc, char *argv[]) {
   fig.add_kwargs("vvvvvvvvvvvv", dict);
 
   fig.send(zmq::send_flags::none);
-  std::cout << "hi" << std::endl;
 
   std::cout << "pub done" << std::endl;
   return 0;
