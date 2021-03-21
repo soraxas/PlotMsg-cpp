@@ -24,206 +24,68 @@ void initialise_publisher(int sleep_after_bind = 1000,
     std::this_thread::sleep_for(std::chrono::milliseconds(sleep_after_bind));
 }
 
-class Dictionary;
-
 // easy alias
 using DictionaryMsg = PlotlyMsg::Dictionary;
 using DictionaryMsgData =
     google::protobuf::Map<std::string, PlotlyMsg::DictItemVal>;
 
-// Helpers
-// void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
-//                        bool value);
-//
-// void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
-//                        double value);
-//
-// void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
-//                        int value);
-//
-// void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
-//                        const std::string &value);
-//
-// void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
-//                        const char *value);
-//
-// void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
-//                        const std::vector<double> &value);
-//
-// void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
-//                        const std::vector<int> &value);
-//
-// void dictmsg_add_kwargs(DictionaryMsgData *msg, const std::string &key,
-//                        Plotly::Dictionary &value);
-
-std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict) {
-  out << "Dict(";
-  bool first_item = true;
-  for (auto &&it = dict.begin(); it != dict.end(); ++it) {
-    if (first_item)
-      first_item = false;
-    else
-      out << ", ";
-
-    out << it->first << ":";
-    auto itemVal = it->second;
-
-    switch (itemVal.value_case()) {
-    case itemVal.kSeriesD:
-      out << "seriesD<..>";
-      break;
-    case itemVal.kSeriesI:
-      out << "seriesI<..>";
-      break;
-    case itemVal.kBool:
-      out << itemVal.bool_();
-      break;
-    case itemVal.kDict:
-      out << itemVal.dict().data();
-      break;
-    case itemVal.kDouble:
-      out << itemVal.double_();
-      break;
-    case itemVal.kInt:
-      out << itemVal.int_();
-      break;
-    case itemVal.kString:
-      out << itemVal.string();
-      break;
-    case itemVal.VALUE_NOT_SET:
-      break;
-    default:
-      throw std::runtime_error(
-          "Unimplemented DictItemVal " +
-          std::to_string(static_cast<int>(itemVal.value_case())));
-    };
-  }
-  out << ")";
-  return out;
-}
+std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict);
 
 // class that represents dict representation in protobuf
 class Dictionary {
 
 public:
-  //  template <typename T, typename... Types>
-  //  static Dictionary get_dict(const std::string &key, T val) {
-  //    add_kwargs(key, val);
-  //  }
-  //
-  //  template <typename T>
-  //  static Dictionary get_dict(const std::string &key, T val) {
-  //    Dictionary dict;
-  //    dict.add_kwargs(key, val);
-  //  }
+  class DictionaryItemPair {
+  public:
+    DictionaryItemPair(const std::string &key, bool value);
+
+    DictionaryItemPair(const std::string &key, double value);
+
+    DictionaryItemPair(const std::string &key, int value);
+
+    DictionaryItemPair(const std::string &key, const char *value);
+
+    DictionaryItemPair(const std::string &key, std::string &value);
+
+    DictionaryItemPair(const std::string &key,
+                       const std::vector<double> &value);
+
+    DictionaryItemPair(const std::string &key, const std::vector<int> &value);
+
+    DictionaryItemPair(const std::string &key, Plotly::Dictionary &value);
+
+    DictionaryItemPair(const std::string &key, Plotly::Dictionary &&value);
+
+    std::string m_key;
+    PlotlyMsg::DictItemVal m_item_val;
+  };
 
   Dictionary() { reset(); }
 
-
-//  template <typename Types>
-//      void _constructor_helper(const std::string &key, T val) {
-//      add_kwargs(key, val);
-//    }
-
-
-
-
-
-
-
-
-
-
-//  template <typename T, typename Args>
-//  void aa(std::string key, T val, Args args...) {
-////      add_kwargs(key, val);
-//  }
-//
-//  template <typename T>
-//  void aa(std::string key, T val) {
-////      add_kwargs(key, val);
-//  }
-//
-//
-////  template <typename Types>
-//  template <typename T, typename Args
-//
-////            ,
-////            class = typename std::enable_if
-////            <
-////                !std::is_lvalue_reference<T>::value
-////            >::type
-//           >
-//  Dictionary(T &&val, Args args...){
-//      T lval(val);
-//      aa(lval, args);
-//  }
-//
-//
-
-
-
-
-template< class T >
-using decay_t = typename std::decay<T>::type;
-
-//
-//  //  template <typename T>
-//  template <typename T, typename Types>
-//  Dictionary(const std::string &key, T val ,Types rest...)
-//      : Dictionary(rest) {
-//    add_kwargs(key, val);
-//  }
-//  template <typename T>
-//  Dictionary(const std::string &key, T val)
-//      : Dictionary() {
-//    add_kwargs(key, val);
-//  }
-
-
-  //  template <typename T>
+  // template to create dictionary with arbitrary amount of item pair
   template <typename T, typename... Types>
-  Dictionary(const std::string &key, T val , Types ...rest)
+  Dictionary(const std::string &key, T val, Types... rest)
       : Dictionary(rest...) {
     add_kwargs(key, val);
   }
 
+  // template bases-case
   template <typename T>
-  Dictionary(const std::string &key, T val)
-      : Dictionary() {
+  Dictionary(const std::string &key, T val) : Dictionary() {
     add_kwargs(key, val);
   }
 
+  // template to create dictionary with dict item pair
+  explicit Dictionary(DictionaryItemPair pair) : Dictionary() {
+    add_kwargs(pair);
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-////  template <typename Types>
-//  template <typename T, typename Args,
-//            class = typename std::enable_if
-//            <
-//                std::is_lvalue_reference<T>::value
-//            >::type
-//           >
-//  Dictionary(T val, Args args...){
-////      aa(val, args);
-//  }
-
-
-
-
-
+  // template bases-case
+  template <typename... Ts, typename = DictionaryItemPair>
+  explicit Dictionary(DictionaryItemPair pair, Ts... rest)
+      : Dictionary(rest...) {
+    add_kwargs(pair);
+  }
 
   // copy-construct
   Dictionary(Dictionary &dict) {
@@ -232,139 +94,38 @@ using decay_t = typename std::decay<T>::type;
   }
 
   // rvalue-construct
-  Dictionary(Dictionary &&dict) {
-    m_msg = std::move(dict.m_msg);
+  Dictionary(Dictionary &&dict) noexcept { m_msg = std::move(dict.m_msg); }
+
+  static void _build(Dictionary &dict, DictionaryItemPair pair) {
+    dict.add_kwargs(pair);
   }
 
-  /*
-
-
-
-  //
-  //  Dictionary(const Dictionary &dict) {
-  //    reset();
-  //    m_msg.swap(dict.m_msg);
-  //  }
-
-  //  Dictionary(Plotly::Dictionary &dict) {
-  //    throw std::runtime_error("no");
-  //  }
-
-  //  Dictionary(Plotly::Dictionary &dict) {
-  //    m_msg.swap(dict.m_msg);
-  //  }
-
-  //  Dictionary(const Plotly::Dictionary dict) {
-  //    m_msg = std::unique_ptr<DictionaryMsg>(dict.m_msg);
-  //  }
-
-  template <typename T>
-  Dictionary(const std::string &key, T val) : Dictionary() {
-    _constructor_helper(key, val);
+  template <typename... T, typename = DictionaryItemPair>
+  static void _build(Dictionary &dict, DictionaryItemPair pair, T... rest) {
+    _build(dict, rest...);
+    dict.add_kwargs(pair);
   }
 
-  //  // rvalue as argument
-  //  Dictionary(const std::string &key, Dictionary &&val) : Dictionary() {
-  //    Dictionary lval(val);
-  //    add_kwargs(key, lval);
-  //  }
+  //// ONLY ENABLE FOR CERTAIN CLASS
+  //  template <bool...> struct bool_pack {};
+  //  template <class... Ts>
+  //  using conjunction = std::is_same<bool_pack<true, Ts::value...>,
+  //                                   bool_pack<Ts::value..., true>>;
+  //
+  //  template <typename... Ts>
+  //  using AllDictionaryItemPair = typename std::enable_if<
+  //      conjunction<std::is_convertible<Ts,
+  //      DictionaryItemPair>...>::value>::type;
 
-  // return invert_x< std::remove_reference_t<P> >( pin,
-  //                                                std::is_lvalue_reference<P&&>());
-  // return invert_x< std::remove_reference_t<P> >( pin,
-  //                                                std::is_lvalue_reference<P&&>());
-
-  // template<typename T, typename Types,
-  //            std::enable_if_t<!std::is_rvalue_reference<T
-  //     >::value, int> = 0>
-
-  //  template <typename T,
-  //  std::enable_if_t<!std::is_rvalue_reference<Dictionary
-  //     >::value, int> = 0>
-
-  //  template <typename T,
-  //  std::enable_if_t<!std::is_rvalue_reference<Dictionary
-  //     >::value, int> = 0>
-  //  void _constructor_helper(const std::string &key, T val) {
-  //    add_kwargs(key, val);
-  //  }
-
-  void _constructor_helper(const std::string &key, Dictionary &val) {
-    Dictionary lval(val);
-    add_kwargs(key, lval);
+  template <typename... Ts, typename = DictionaryItemPair>
+  static Dictionary build(Ts... rest) {
+    Dictionary dict;
+    //    _build(dict, pair, rest...);
+    _build(dict, rest...);
+    return dict;
   }
 
-//  template <typename T>
-  template <typename T, typename Types,
-            class = typename std::enable_if
-            <
-                !std::is_lvalue_reference<T>::value
-            >::type
-           >
-  Dictionary(
-      const std::string &key, T &&val
-//      const std::string &key1, T &&val1
-             ,Types rest...
-             )
-      : Dictionary() {
-
-    //    Dictionary lval(val);
-    add_kwargs(key, val);
-
-    //    Dictionary lval(val);
-    _constructor_helper(key, val);
-    //    _constructor_helper(key, Dictionary());
-    //    _constructor_helper(key, lval);
-  }
-
-
-
-
-
-  */
-
-
-
-
-
-
-
-
-
-  //  template <typename T, typename... Types>
-  //  Dictionary(const std::string &key, Dictionary && val, Types... rest)
-  //      : Dictionary(rest...) {
-  //    _constructor_helper(key, val);
-  //
-  //  }
-
-  //
-  //  // rvalue as argument
-  //  template <typename... Types>
-  //  Dictionary(const std::string &key, Dictionary &&val, Types... rest)
-  //      : Dictionary(rest...) {
-  //    Dictionary lval(val);
-  //    add_kwargs(key, lval);
-  //  }
-
-  //  template <typename T, typename... Types>
-  //  Dictionary(const std::string &key, T val, Types... rest)
-  //      : Dictionary(rest...) {
-  //    add_kwargs(key, val);
-  //  }
-
-  //
-  //  template <typename T, typename... Types>
-  //  Dictionary(const std::string &key, Dictionary &&val, Types... rest)
-  //      : Dictionary(rest...) {
-  //    add_kwargs(key, val);
-  //  }
-
-  //  template <typename T, typename... Types>
-  //  Dictionary(std::string key, Dictionary val, Types... rest) :
-  //  Dictionary(rest...) {
-  //    add_kwargs(key, val);
-  //  }
+  // methods to add kwargs into the dictionary
 
   void add_kwargs(const std::string &key, bool value) const;
 
@@ -383,11 +144,17 @@ using decay_t = typename std::decay<T>::type;
 
   void add_kwargs(const std::string &key, Plotly::Dictionary &value) const;
 
+  void add_kwargs(const std::string &key, PlotlyMsg::DictItemVal &value) const;
+
+  void add_kwargs(DictionaryItemPair &value) const;
+
+  // directly set kwargs
   void set_kwargs(Plotly::Dictionary &value) const;
 
   friend std::ostream &operator<<(std::ostream &out, Dictionary const &dict) {
     return out << (*dict.m_msg).data();
   }
+
   void reset();
 
   DictionaryMsg *release_ptr();
@@ -397,35 +164,7 @@ using decay_t = typename std::decay<T>::type;
 };
 
 ////////////////////////////////////////
-// Dictionary Builder
-////////////////////////////////////////
-
-template <typename T>
-static void _get_dict_helper(const Dictionary &dict, const std::string &key,
-                             T val) {
-  dict.add_kwargs(key, val);
-}
-
-template <typename T, typename... Types>
-static void _get_dict_helper(const Dictionary &dict, const std::string &key,
-                             T val, Types... rest) {
-  dict.add_kwargs(key, val);
-  _get_dict_helper(dict, rest...);
-}
-
-template <typename T, typename... Types>
-static void _get_dict_helper(const Dictionary &dict, const std::string &key,
-                             Dictionary val, Types... rest) {
-  dict.add_kwargs(key, val);
-  _get_dict_helper(dict, rest...);
-}
-
-template <typename... Args> static Dictionary get_dict(Args... args) {
-  Dictionary dict;
-  _get_dict_helper(dict, args...);
-  return dict;
-}
-
+// Figure classplementation
 ////////////////////////////////////////
 
 class Figure {
@@ -437,19 +176,11 @@ public:
     m_msg.set_uuid(m_uuid);
   }
 
-  //  template <typename T>
-  //  void add_kwargs(const std::string &key, const T &value) {
-  //    dictmsg_add_kwargs(msg.mutable_kwargs()->mutable_data(), key, value);
-  //  }
-
   template <typename T> void add_kwargs(const std::string &key, T &value) {
-    //    dictmsg_add_kwargs(msg.mutable_kwargs()->mutable_data(), key, value);
     m_kwargs.add_kwargs(key, value);
   }
 
-  void set_kwargs(Dictionary &value) {
-    m_kwargs.set_kwargs(value);
-  }
+  void set_kwargs(Dictionary &value) { m_kwargs.set_kwargs(value); }
 
   // by r-value
   void set_kwargs(Dictionary &&value) {
@@ -457,9 +188,7 @@ public:
     m_kwargs.set_kwargs(lval);
   }
 
-  const Dictionary get_kwargs() {
-    return m_kwargs;
-  }
+  Dictionary get_kwargs() { return m_kwargs; }
 
   void send(zmq::send_flags send_flags = zmq::send_flags::dontwait);
 

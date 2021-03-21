@@ -43,6 +43,17 @@ void Dictionary::add_kwargs(const std::string &key,
                             Plotly::Dictionary &value) const {
   (*m_msg->mutable_data())[key].set_allocated_dict(value.release_ptr());
 }
+
+void Dictionary::add_kwargs(const std::string &key,
+                            PlotlyMsg::DictItemVal &value) const {
+  (*m_msg->mutable_data())[key].Swap(&value);
+}
+
+void Dictionary::add_kwargs(
+    Plotly::Dictionary::DictionaryItemPair &value) const {
+  (*m_msg->mutable_data())[value.m_key].Swap(&value.m_item_val);
+}
+
 void Dictionary::set_kwargs(Plotly::Dictionary &value) const {
   m_msg->mutable_data()->swap(*value.m_msg->mutable_data());
 }
@@ -50,6 +61,65 @@ void Dictionary::set_kwargs(Plotly::Dictionary &value) const {
 void Dictionary::reset() { m_msg = std::make_unique<DictionaryMsg>(); }
 
 DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
+
+////////////////////////////////////////
+// implementation of Dictionary Item Pair
+////////////////////////////////////////
+
+Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
+                                                   bool value) {
+  m_key = key;
+  m_item_val.set_bool_(value);
+}
+
+Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
+                                                   double value) {
+  m_key = key;
+  m_item_val.set_double_(value);
+}
+
+Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
+                                                   int value) {
+  m_key = key;
+  m_item_val.set_int_(value);
+}
+
+Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
+                                                   const char *value) {
+  m_key = key;
+  m_item_val.set_string(value);
+}
+
+Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
+                                                   std::string &value) {
+  m_key = key;
+  m_item_val.set_string(std::move(value));
+}
+
+Dictionary::DictionaryItemPair::DictionaryItemPair(
+    const std::string &key, const std::vector<double> &value) {
+  m_key = key;
+  m_item_val.set_allocated_series_d(vec_to_allocated_seriesD(value));
+}
+
+Dictionary::DictionaryItemPair::DictionaryItemPair(
+    const std::string &key, const std::vector<int> &value) {
+  m_key = key;
+  m_item_val.set_allocated_series_i(vec_to_allocated_seriesI(value));
+}
+
+Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
+                                                   Plotly::Dictionary &value) {
+  m_key = key;
+  m_item_val.set_allocated_dict(value.release_ptr());
+}
+
+Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
+                                                   Plotly::Dictionary &&value) {
+  Plotly::Dictionary lvalue(value);
+  m_key = key;
+  m_item_val.set_allocated_dict(lvalue.release_ptr());
+}
 
 ////////////////////////////////////////
 // implementation of Plotly Figure
@@ -95,6 +165,52 @@ PlotlyMsg::SeriesI *vec_to_allocated_seriesI(std::vector<int> value) {
   auto *series = new PlotlyMsg::SeriesI();
   series->mutable_data()->Swap(&data);
   return series;
+}
+
+std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict) {
+  out << "Dict(";
+  bool first_item = true;
+  for (auto &&it = dict.begin(); it != dict.end(); ++it) {
+    if (first_item)
+      first_item = false;
+    else
+      out << ", ";
+
+    out << it->first << ":";
+    auto itemVal = it->second;
+
+    switch (itemVal.value_case()) {
+    case itemVal.kSeriesD:
+      out << "seriesD<..>";
+      break;
+    case itemVal.kSeriesI:
+      out << "seriesI<..>";
+      break;
+    case itemVal.kBool:
+      out << itemVal.bool_();
+      break;
+    case itemVal.kDict:
+      out << itemVal.dict().data();
+      break;
+    case itemVal.kDouble:
+      out << itemVal.double_();
+      break;
+    case itemVal.kInt:
+      out << itemVal.int_();
+      break;
+    case itemVal.kString:
+      out << itemVal.string();
+      break;
+    case itemVal.VALUE_NOT_SET:
+      break;
+    default:
+      throw std::runtime_error(
+          "Unimplemented DictItemVal " +
+          std::to_string(static_cast<int>(itemVal.value_case())));
+    };
+  }
+  out << ")";
+  return out;
 }
 
 //////////////////////////////////////////////////////////////////////////
