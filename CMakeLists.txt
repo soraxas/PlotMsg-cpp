@@ -75,7 +75,7 @@ add_subdirectory(src/protobuf_msg)
 add_subdirectory(src/cpp2py_plotly)
 
 # demo
-add_executable(pub "publisher.cpp")
+add_executable(pub "publisher_example.cpp")
 target_link_libraries(pub cpp2py_plotly)
 
 # +-----------------------------------------------------------------------------
