@@ -14,6 +14,7 @@ CPP2PY_MODE_ASYNC = "async"
 CPP2PY_MODE_WIDGET = "ipywidget"
 
 
+# helper decorator to only execute ipywidget related code
 def ipywidget_mode(warn=False):
     def decorator(f):
         def wrapper(self, *args, **kwargs):
@@ -26,6 +27,20 @@ def ipywidget_mode(warn=False):
         return wrapper
 
     return decorator
+
+
+# helper function to check whether it's currently within jupyter notebook
+def inside_notebook():
+    try:
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True  # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+        else:
+            return False  # Other type (?)
+    except NameError:
+        return False  # Probably standard Python
 
 
 class DummyCtxMgr:
@@ -150,6 +165,11 @@ class Cpp2PyPlotly:
         if not hasattr(self.__class__, "stored_figs"):
             self.__class__.stored_figs = {}
         self.stored_figs = self.__class__.stored_figs
+
+        if mode == CPP2PY_MODE_WIDGET:
+            if not inside_notebook():
+                # cannot runs in ipywidget mode
+                mode = CPP2PY_MODE_DEFAULT
 
         if mode.startswith(CPP2PY_MODE_WIDGET):
             mode = CPP2PY_MODE_WIDGET
@@ -291,7 +311,7 @@ class Cpp2PyPlotly:
 
         self._update_selection()
 
-    @ipywidget_mode(True)
+    @ipywidget_mode(False)
     def add_figure_widget(self, widget, uuid='default'):
         """Overwrite any existing widget."""
         assert type(widget) is self.goFigClass, type(widget)
@@ -306,7 +326,7 @@ class Cpp2PyPlotly:
 
         self._update_selection()
 
-    @ipywidget_mode(True)
+    @ipywidget_mode(False)
     def update_figure_widget(self, widget, uuid='default'):
         assert type(widget) is go.FigureWidget, type(widget)
         """WARN: Assumes the line sequence are in the same order"""
