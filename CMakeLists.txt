@@ -74,6 +74,12 @@ endif ()
 add_subdirectory(src/protobuf_msg)
 add_subdirectory(src/cpp2py_plotly)
 
+# python scripts
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/cpp2py_plotly.py
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cpp2py_plotly.py
+)
+
 # demo
 add_executable(pub "publisher_example.cpp")
 target_link_libraries(pub cpp2py_plotly)

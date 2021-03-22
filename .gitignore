@@ -45,6 +45,7 @@
 # End of https://www.toptal.com/developers/gitignore/api/c++
 bin/
 build/
+lib/
 .idea/
 .ipynb_checkpoints/
 __pycache__
