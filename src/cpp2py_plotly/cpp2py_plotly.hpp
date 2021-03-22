@@ -174,7 +174,7 @@ public:
     m_msg.set_uuid(m_uuid);
   }
 
-  template <typename T> void add_kwargs(const std::string &key, T &value) {
+  template <typename T> void add_kwargs(const std::string &key, T value) {
     m_kwargs.add_kwargs(key, std::forward<T>(value));
   }
 
