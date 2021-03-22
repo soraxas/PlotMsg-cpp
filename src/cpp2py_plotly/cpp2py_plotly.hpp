@@ -31,20 +31,19 @@ using DictionaryMsgData =
 
 std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict);
 
-// helper function to assign given PlotlyMsg::DictItemVal with T value
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, bool value) {
-  item_val.set_bool_(value);
-}
-
 // forward declare
 class Dictionary;
 
 ////////////////////////////////////////
 // Helpers
 ////////////////////////////////////////
+
 PlotlyMsg::SeriesD *vec_to_allocated_seriesD(std::vector<double> value);
 
 PlotlyMsg::SeriesI *vec_to_allocated_seriesI(std::vector<int> value);
+
+// helper function to assign given PlotlyMsg::DictItemVal with T value
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, bool value);
 
 void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, double value);
 

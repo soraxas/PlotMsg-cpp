@@ -20,12 +20,6 @@ void Dictionary::reset() { m_msg = std::make_unique<DictionaryMsg>(); }
 DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
 
 ////////////////////////////////////////
-// implementation of Dictionary Item Pair
-////////////////////////////////////////
-
-
-
-////////////////////////////////////////
 // implementation of Plotly Figure
 ////////////////////////////////////////
 Figure::Figure(std::string uuid) : m_uuid(std::move(uuid)) { reset(); }
@@ -69,6 +63,10 @@ PlotlyMsg::SeriesI *vec_to_allocated_seriesI(std::vector<int> value) {
   auto *series = new PlotlyMsg::SeriesI();
   series->mutable_data()->Swap(&data);
   return series;
+}
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, bool value) {
+  item_val.set_bool_(value);
 }
 
 void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, double value) {
