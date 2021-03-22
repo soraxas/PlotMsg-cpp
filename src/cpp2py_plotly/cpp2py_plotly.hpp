@@ -1,3 +1,5 @@
+#pragma once
+
 #include <chrono>
 #include <iostream>
 #include <thread>
@@ -148,6 +150,8 @@ public:
 
   // directly set kwargs
   void set_kwargs(Plotly::Dictionary &value) const;
+
+  std::unique_ptr<Dictionary> deep_copy() const;
 
   friend std::ostream &operator<<(std::ostream &out, Dictionary const &dict) {
     return out << (*dict.m_msg).data();

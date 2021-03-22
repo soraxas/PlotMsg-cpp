@@ -15,6 +15,52 @@ void Dictionary::set_kwargs(Plotly::Dictionary &value) const {
   m_msg->mutable_data()->swap(*value.m_msg->mutable_data());
 }
 
+void _deep_copy_helper(const DictionaryMsgData &ori_dict,
+                       DictionaryMsgData &new_dict) {
+  /*
+   * Copy contents from ori_dict to new_dict
+   */
+  for (auto &&it = ori_dict.begin(); it != ori_dict.end(); ++it) {
+    auto key = it->first;
+    auto itemVal = it->second;
+
+    if (itemVal.value_case() == PlotlyMsg::DictItemVal::kSeriesD) {
+      // TODO
+      auto *series_d = new PlotlyMsg::SeriesD();
+      series_d->ParseFromString(itemVal.series_d().SerializeAsString());
+      new_dict[key].set_allocated_series_d(series_d);
+    } else if (itemVal.value_case() == PlotlyMsg::DictItemVal::kSeriesI) {
+      // TODO
+      auto *series_i = new PlotlyMsg::SeriesI();
+      series_i->ParseFromString(itemVal.series_i().SerializeAsString());
+      new_dict[key].set_allocated_series_i(series_i);
+      itemVal.series_i().New(itemVal.GetArena());
+    } else if (itemVal.value_case() == PlotlyMsg::DictItemVal::kBool) {
+      _set_DictItemVal(new_dict[key], itemVal.bool_());
+    } else if (itemVal.value_case() == PlotlyMsg::DictItemVal::kDict) {
+      auto *nested_dict = new DictionaryMsg();
+      _deep_copy_helper(itemVal.dict().data(),
+                        (*(*nested_dict).mutable_data()));
+      new_dict[key].set_allocated_dict(nested_dict);
+    } else if (itemVal.value_case() == PlotlyMsg::DictItemVal::kDouble) {
+      _set_DictItemVal(new_dict[key], itemVal.double_());
+    } else if (itemVal.value_case() == PlotlyMsg::DictItemVal::kString) {
+      std::string new_str = itemVal.string();
+      _set_DictItemVal(new_dict[key], new_str);
+    } else {
+      throw std::runtime_error(
+          "Unimplemented DictItemVal " +
+          std::to_string(static_cast<int>(itemVal.value_case())));
+    };
+  }
+}
+
+std::unique_ptr<Dictionary> Dictionary::deep_copy() const {
+  Dictionary dict;
+  _deep_copy_helper(m_msg->data(), *dict.m_msg->mutable_data());
+  return std::make_unique<Dictionary>(dict);
+}
+
 void Dictionary::reset() { m_msg = std::make_unique<DictionaryMsg>(); }
 
 DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
@@ -119,28 +165,28 @@ std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict) {
     auto itemVal = it->second;
 
     switch (itemVal.value_case()) {
-    case itemVal.kSeriesD:
+    case PlotlyMsg::DictItemVal::kSeriesD:
       out << "seriesD<..>";
       break;
-    case itemVal.kSeriesI:
+    case PlotlyMsg::DictItemVal::kSeriesI:
       out << "seriesI<..>";
       break;
-    case itemVal.kBool:
+    case PlotlyMsg::DictItemVal::kBool:
       out << itemVal.bool_();
       break;
-    case itemVal.kDict:
+    case PlotlyMsg::DictItemVal::kDict:
       out << itemVal.dict().data();
       break;
-    case itemVal.kDouble:
+    case PlotlyMsg::DictItemVal::kDouble:
       out << itemVal.double_();
       break;
-    case itemVal.kInt:
+    case PlotlyMsg::DictItemVal::kInt:
       out << itemVal.int_();
       break;
-    case itemVal.kString:
+    case PlotlyMsg::DictItemVal::kString:
       out << itemVal.string();
       break;
-    case itemVal.VALUE_NOT_SET:
+    case PlotlyMsg::DictItemVal::VALUE_NOT_SET:
       break;
     default:
       throw std::runtime_error(
