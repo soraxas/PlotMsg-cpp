@@ -15,6 +15,13 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
+add_custom_command(
+        TARGET proto_plotly_py POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/msg_pb2.py
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msg_pb2.py
+)
+
 install(
         TARGETS proto_plotly_cpp
         EXPORT ${PROJECT_NAME}Targets

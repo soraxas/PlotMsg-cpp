@@ -1,17 +1,11 @@
-# import sys
-# import os
-import sys
+import asyncio
 import time
 
 import ipywidgets
-
-sys.path.insert(0, "/home/soraxas/git-repo/cpp2py_plotly/build/src/protobuf_msg/")
-
 import msg_pb2
 import numpy as np
 import plotly.graph_objs as go
 import zmq
-import asyncio
 from IPython.display import display
 
 CPP2PY_ADDRESS = "tcp://127.0.0.1:5557"
@@ -28,6 +22,7 @@ def ipywidget_mode(warn=False):
             if warn:
                 print("Only works in jupyter notebook (ipywidget mode)")
             return
+
         return wrapper
 
     return decorator
