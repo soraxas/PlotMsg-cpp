@@ -31,30 +31,54 @@ using DictionaryMsgData =
 
 std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict);
 
+// helper function to assign given PlotlyMsg::DictItemVal with T value
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, bool value) {
+  item_val.set_bool_(value);
+}
+
+// forward declare
+class Dictionary;
+
+////////////////////////////////////////
+// Helpers
+////////////////////////////////////////
+PlotlyMsg::SeriesD *vec_to_allocated_seriesD(std::vector<double> value);
+
+PlotlyMsg::SeriesI *vec_to_allocated_seriesI(std::vector<int> value);
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, double value);
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, int value);
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, const char *value);
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, std::string &value);
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      const std::vector<double> &value);
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      const std::vector<int> &value);
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      Plotly::Dictionary &value);
+
+// r-value, uses l-value definition
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      Plotly::Dictionary &&value);
+
+////////////////////////////////////////
+
 // class that represents dict representation in protobuf
 class Dictionary {
 
 public:
   class DictionaryItemPair {
   public:
-    DictionaryItemPair(const std::string &key, bool value);
-
-    DictionaryItemPair(const std::string &key, double value);
-
-    DictionaryItemPair(const std::string &key, int value);
-
-    DictionaryItemPair(const std::string &key, const char *value);
-
-    DictionaryItemPair(const std::string &key, std::string &value);
-
-    DictionaryItemPair(const std::string &key,
-                       const std::vector<double> &value);
-
-    DictionaryItemPair(const std::string &key, const std::vector<int> &value);
-
-    DictionaryItemPair(const std::string &key, Plotly::Dictionary &value);
-
-    DictionaryItemPair(const std::string &key, Plotly::Dictionary &&value);
+    template <typename T> DictionaryItemPair(const std::string &key, T value) {
+      m_key = key;
+      Plotly::_set_DictItemVal(m_item_val, std::forward<T>(value));
+    }
 
     std::string m_key;
     PlotlyMsg::DictItemVal m_item_val;
@@ -88,6 +112,12 @@ public:
   }
 
   // copy-construct
+  Dictionary(const Dictionary &dict) {
+    reset();
+    m_msg->ParseFromString(dict.m_msg->SerializeAsString());
+  }
+
+  // swap-construct
   Dictionary(Dictionary &dict) {
     reset();
     m_msg.swap(dict.m_msg);
@@ -95,16 +125,6 @@ public:
 
   // rvalue-construct
   Dictionary(Dictionary &&dict) noexcept { m_msg = std::move(dict.m_msg); }
-
-  static void _build(Dictionary &dict, DictionaryItemPair pair) {
-    dict.add_kwargs(pair);
-  }
-
-  template <typename... T, typename = DictionaryItemPair>
-  static void _build(Dictionary &dict, DictionaryItemPair pair, T... rest) {
-    _build(dict, rest...);
-    dict.add_kwargs(pair);
-  }
 
   //// ONLY ENABLE FOR CERTAIN CLASS
   //  template <bool...> struct bool_pack {};
@@ -117,34 +137,13 @@ public:
   //      conjunction<std::is_convertible<Ts,
   //      DictionaryItemPair>...>::value>::type;
 
-  template <typename... Ts, typename = DictionaryItemPair>
-  static Dictionary build(Ts... rest) {
-    Dictionary dict;
-    //    _build(dict, pair, rest...);
-    _build(dict, rest...);
-    return dict;
-  }
-
   // methods to add kwargs into the dictionary
 
-  void add_kwargs(const std::string &key, bool value) const;
-
-  void add_kwargs(const std::string &key, double value) const;
-
-  void add_kwargs(const std::string &key, int value) const;
-
-  void add_kwargs(const std::string &key, const std::string &value) const;
-
-  void add_kwargs(const std::string &key, const char *value) const;
-
-  void add_kwargs(const std::string &key,
-                  const std::vector<double> &value) const;
-
-  void add_kwargs(const std::string &key, const std::vector<int> &value) const;
-
-  void add_kwargs(const std::string &key, Plotly::Dictionary &value) const;
-
-  void add_kwargs(const std::string &key, PlotlyMsg::DictItemVal &value) const;
+  template <typename T> void add_kwargs(const std::string &key, T value) {
+    // pass the DictItemVal reference to helper function as template
+    Plotly::_set_DictItemVal((*m_msg->mutable_data())[key],
+                             std::forward<T>(value));
+  }
 
   void add_kwargs(DictionaryItemPair &value) const;
 
@@ -182,13 +181,13 @@ public:
 
   void set_kwargs(Dictionary &value) { m_kwargs.set_kwargs(value); }
 
-  // by r-value
-  void set_kwargs(Dictionary &&value) {
-    Dictionary lval(value);
-    m_kwargs.set_kwargs(lval);
-  }
+  // by r-value (uses l-value definition)
+  void set_kwargs(Dictionary &&value) { set_kwargs(value); }
 
-  Dictionary get_kwargs() { return m_kwargs; }
+  Dictionary get_dict_copy() const {
+    Dictionary new_dict(m_kwargs);
+    return new_dict;
+  }
 
   void send(zmq::send_flags send_flags = zmq::send_flags::dontwait);
 
@@ -202,12 +201,5 @@ private:
   std::string m_uuid;
   Dictionary m_kwargs;
 };
-
-////////////////////////////////////////
-// Helpers
-////////////////////////////////////////
-PlotlyMsg::SeriesD *vec_to_allocated_seriesD(std::vector<double> value);
-
-PlotlyMsg::SeriesI *vec_to_allocated_seriesI(std::vector<int> value);
 
 } // namespace Plotly

@@ -6,49 +6,6 @@ namespace Plotly {
 // implementation of Dictionary
 ////////////////////////////////////////
 
-void Dictionary::add_kwargs(const std::string &key, bool value) const {
-  (*m_msg->mutable_data())[key].set_bool_(value);
-}
-
-void Dictionary::add_kwargs(const std::string &key, double value) const {
-  (*m_msg->mutable_data())[key].set_double_(value);
-}
-
-void Dictionary::add_kwargs(const std::string &key, int value) const {
-  (*m_msg->mutable_data())[key].set_int_(value);
-}
-
-void Dictionary::add_kwargs(const std::string &key, const char *value) const {
-  (*m_msg->mutable_data())[key].set_string(value);
-}
-
-void Dictionary::add_kwargs(const std::string &key,
-                            const std::string &value) const {
-  (*m_msg->mutable_data())[key].set_string(value);
-}
-
-void Dictionary::add_kwargs(const std::string &key,
-                            const std::vector<double> &value) const {
-  (*m_msg->mutable_data())[key].set_allocated_series_d(
-      vec_to_allocated_seriesD(value));
-}
-
-void Dictionary::add_kwargs(const std::string &key,
-                            const std::vector<int> &value) const {
-  (*m_msg->mutable_data())[key].set_allocated_series_i(
-      vec_to_allocated_seriesI(value));
-}
-
-void Dictionary::add_kwargs(const std::string &key,
-                            Plotly::Dictionary &value) const {
-  (*m_msg->mutable_data())[key].set_allocated_dict(value.release_ptr());
-}
-
-void Dictionary::add_kwargs(const std::string &key,
-                            PlotlyMsg::DictItemVal &value) const {
-  (*m_msg->mutable_data())[key].Swap(&value);
-}
-
 void Dictionary::add_kwargs(
     Plotly::Dictionary::DictionaryItemPair &value) const {
   (*m_msg->mutable_data())[value.m_key].Swap(&value.m_item_val);
@@ -66,60 +23,7 @@ DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
 // implementation of Dictionary Item Pair
 ////////////////////////////////////////
 
-Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
-                                                   bool value) {
-  m_key = key;
-  m_item_val.set_bool_(value);
-}
 
-Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
-                                                   double value) {
-  m_key = key;
-  m_item_val.set_double_(value);
-}
-
-Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
-                                                   int value) {
-  m_key = key;
-  m_item_val.set_int_(value);
-}
-
-Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
-                                                   const char *value) {
-  m_key = key;
-  m_item_val.set_string(value);
-}
-
-Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
-                                                   std::string &value) {
-  m_key = key;
-  m_item_val.set_string(std::move(value));
-}
-
-Dictionary::DictionaryItemPair::DictionaryItemPair(
-    const std::string &key, const std::vector<double> &value) {
-  m_key = key;
-  m_item_val.set_allocated_series_d(vec_to_allocated_seriesD(value));
-}
-
-Dictionary::DictionaryItemPair::DictionaryItemPair(
-    const std::string &key, const std::vector<int> &value) {
-  m_key = key;
-  m_item_val.set_allocated_series_i(vec_to_allocated_seriesI(value));
-}
-
-Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
-                                                   Plotly::Dictionary &value) {
-  m_key = key;
-  m_item_val.set_allocated_dict(value.release_ptr());
-}
-
-Dictionary::DictionaryItemPair::DictionaryItemPair(const std::string &key,
-                                                   Plotly::Dictionary &&value) {
-  Plotly::Dictionary lvalue(value);
-  m_key = key;
-  m_item_val.set_allocated_dict(lvalue.release_ptr());
-}
 
 ////////////////////////////////////////
 // implementation of Plotly Figure
@@ -165,6 +69,43 @@ PlotlyMsg::SeriesI *vec_to_allocated_seriesI(std::vector<int> value) {
   auto *series = new PlotlyMsg::SeriesI();
   series->mutable_data()->Swap(&data);
   return series;
+}
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, double value) {
+  item_val.set_double_(value);
+}
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, int value) {
+  item_val.set_int_(value);
+}
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, const char *value) {
+  item_val.set_string(value);
+}
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, std::string &value) {
+  item_val.set_string(std::move(value));
+}
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      const std::vector<double> &value) {
+  item_val.set_allocated_series_d(vec_to_allocated_seriesD(value));
+}
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      const std::vector<int> &value) {
+  item_val.set_allocated_series_i(vec_to_allocated_seriesI(value));
+}
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      Plotly::Dictionary &value) {
+  item_val.set_allocated_dict(value.release_ptr());
+}
+
+// r-value, uses l-value definition
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      Plotly::Dictionary &&value) {
+  _set_DictItemVal(item_val, value);
 }
 
 std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict) {
