@@ -24,7 +24,7 @@ def ipywidget_mode(warn=False):
     def decorator(f):
         def wrapper(self, *args, **kwargs):
             if self.mode == CPP2PY_MODE_WIDGET:
-                return f(*args, **kwargs)
+                return f(self, *args, **kwargs)
             if warn:
                 print("Only works in jupyter notebook (ipywidget mode)")
             return
@@ -73,7 +73,6 @@ class Cpp2PyReciever:
     def initialise(self, sleep=1, mode=CPP2PY_MODE_DEFAULT):
         if self.mode == mode:
             return
-        print('init', mode)
         if mode == CPP2PY_MODE_ASYNC:
             context = zmq.asyncio.Context()
         elif mode == CPP2PY_MODE_DEFAULT:
@@ -225,7 +224,6 @@ class Cpp2PyPlotly:
     def parse_msg_to_plotly_fig(self, msg):
         """Give a parsed msg (in terms of dict and friends), add a plotly figure."""
         uuid, fig_kwargs = msg
-        print(fig_kwargs)
         plotly_fig_widget = self.goFigClass(
             go.Scatter(
                 **fig_kwargs
@@ -266,7 +264,6 @@ class Cpp2PyPlotly:
 
         async def _spin_async():
             while True:
-                print('>')
                 process_msg_func = await self.reciever.get_msg_async_func()
                 with self.ctx_mgr_chained():
                     self.parse_msg_to_plotly_fig(process_msg_func())
@@ -304,8 +301,6 @@ class Cpp2PyPlotly:
         """Overwrite any existing widget."""
         assert type(widget) is self.goFigClass, type(widget)
 
-        print(uuid)
-        print('--------------')
         if uuid in self.stored_figs:
             print("FIX THIS")
             return self.update_figure_widget(widget, uuid)
@@ -427,7 +422,6 @@ class Cpp2PyPlotly:
             inner_figs_container.children = [self.stored_figs[event['new']]]
 
         self.w_single_fig_sel.observe(on_change, 'value')
-        self.w_single_fig_sel.observe(lambda x: print(x))
         self.w_single_fig_sel.options = self.stored_figs.keys()
         ## Outer widget
         widget = ipywidgets.VBox(
