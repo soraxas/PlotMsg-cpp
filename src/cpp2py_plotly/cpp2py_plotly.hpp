@@ -175,7 +175,7 @@ public:
   }
 
   template <typename T> void add_kwargs(const std::string &key, T &value) {
-    m_kwargs.add_kwargs(key, value);
+    m_kwargs.add_kwargs(key, std::forward<T>(value));
   }
 
   void set_kwargs(Dictionary &value) { m_kwargs.set_kwargs(value); }
