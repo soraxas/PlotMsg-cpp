@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.5.1)
-set(PROJECT_NAME cpp2py_plotly)
-project(${PROJECT_NAME})
+project(cpp2py_plotly)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_CXX_STANDARD 14)
 
@@ -33,8 +32,6 @@ find_package(Protobuf)
 
 # Use local include and library directories
 include_directories(
-        ${BASE_DIR}/src
-        ${BASE_DIR}/src/cpp2py_plotly
         ${ZMQ_INCLUDE_DIRS}
         ${Protobuf_INCLUDE_DIR}
         ${PROJECT_SOURCE_DIR}
@@ -81,8 +78,11 @@ configure_file(
 )
 
 # demo
-add_executable(pub "publisher_example.cpp")
-target_link_libraries(pub cpp2py_plotly)
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    # only build demo if this is the root project
+    add_executable(pub "publisher_example.cpp")
+    target_link_libraries(pub cpp2py_plotly)
+endif ()
 
 # +-----------------------------------------------------------------------------
 # | Installation setup
