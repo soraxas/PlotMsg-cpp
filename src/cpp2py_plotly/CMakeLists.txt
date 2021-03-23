@@ -6,6 +6,7 @@ set(
 set(
         HEADER_FILES
         cpp2py_plotly.hpp
+        cpp2py_plotly_template.hpp
 )
 set(
         LINK_LIBARARIES

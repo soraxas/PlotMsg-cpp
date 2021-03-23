@@ -2,12 +2,17 @@
 #include <numeric>
 
 #include "cpp2py_plotly.hpp"
+#include "cpp2py_plotly_template.hpp"
 
 int main(int argc, char *argv[]) {
 
   auto x = std::vector<double>(20, 1);
   auto y = std::vector<double>(20, 4.2);
   auto o = std::vector<int>(20, 7);
+
+  std::cout << Plotly::FigTemplate::Scatter() << std::endl;
+  std::cout << Plotly::FigTemplate::Scatter(x, y) << std::endl;
+  std::cout << Plotly::FigTemplate::ScatterWithColour(x, y, o) << std::endl;
 
   std::iota(std::begin(x), std::end(x), 0);
   std::iota(std::begin(y), std::end(y), 5);
