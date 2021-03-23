@@ -194,7 +194,14 @@ public:
 
   void send(zmq::send_flags send_flags = zmq::send_flags::dontwait);
 
+  Dictionary *mutable_kwargs();
+
   void reset();
+
+  friend std::ostream &operator<<(std::ostream &out, Figure const &fig) {
+    return out << "Figure<uuid:" << fig.m_uuid
+               << "|kwargs=" << fig.m_kwargs << ">";
+  }
 
 private:
   zmq::message_t build_zmq_msg();

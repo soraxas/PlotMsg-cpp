@@ -152,6 +152,8 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
   _set_DictItemVal(item_val, value);
 }
 
+Dictionary *Figure::mutable_kwargs() { return &m_kwargs; }
+
 std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict) {
   out << "Dict(";
   bool first_item = true;
