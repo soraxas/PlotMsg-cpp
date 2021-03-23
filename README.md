@@ -34,7 +34,7 @@ find_package( cpp2py_plotly REQUIRED )
 target_link_libraries( ${MY_TARGET} cpp2py_plotly )
 ```
 
-# Example
+# Example Usage
 
 Say you have something like this in your `${MY_TARGET}`
 
@@ -53,8 +53,6 @@ int main(int argc, char const *argv[]) {
 }
 ```
 
-
-
 Run
 
 ```shell
@@ -63,8 +61,6 @@ make -C build
 ```
 
 to build your C++ project. 
-
-
 
 You can then, for example, start the python subscriber with
 
@@ -78,6 +74,23 @@ sub.initialise()
 sub.spin()
 ```
 
-
-
 Afterwards, the ipython kernel is listening at the *default* **tcp://127.0.0.1:5557** socket and, when you execute your compiled C++ binary, it will send the `fig` message using the same socket.
+
+## Example Project
+
+`./example_other_project` is an example of a simple project. You can test it out with
+
+```sh
+cd example_other_project
+cmake -Bbuild
+make -C build
+
+# start subscriber in the background (1)
+python py_sub_example.py &
+
+# publish figure from c++
+./build/test
+
+# killall background jobs (py script in (1) that is running in bg )
+kill $(jobs -p)
+```
