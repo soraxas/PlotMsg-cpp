@@ -1,12 +1,17 @@
 import asyncio
 import time
 
-import ipywidgets
-import msg_pb2
+try:
+    import ipywidgets
+except ImportError:
+    pass
+
 import numpy as np
 import plotly.graph_objs as go
 import zmq
 from IPython.display import display
+
+from . import msg_pb2
 
 CPP2PY_ADDRESS = "tcp://127.0.0.1:5557"
 CPP2PY_MODE_DEFAULT = "default"
