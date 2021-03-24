@@ -11,6 +11,11 @@ void Dictionary::add_kwargs(
   (*m_msg->mutable_data())[value.m_key].Swap(&value.m_item_val);
 }
 
+void Dictionary::set_kwargs(Plotly::Dictionary &&value) const {
+  Dictionary lvalue(value);
+  set_kwargs(lvalue);
+}
+
 void Dictionary::set_kwargs(Plotly::Dictionary &value) const {
   m_msg->mutable_data()->swap(*value.m_msg->mutable_data());
 }

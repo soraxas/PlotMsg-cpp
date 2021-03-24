@@ -151,6 +151,8 @@ public:
   // directly set kwargs
   void set_kwargs(Plotly::Dictionary &value) const;
 
+  void set_kwargs(Plotly::Dictionary &&value) const;
+
   std::unique_ptr<Dictionary> deep_copy() const;
 
   friend std::ostream &operator<<(std::ostream &out, Dictionary const &dict) {
@@ -170,10 +172,18 @@ public:
 ////////////////////////////////////////
 class Trace {
 public:
-  Trace() {
-    m_method_func = "";
-    m_method = PlotlyMsg::Trace::graph_objects;
+  Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
+        Dictionary &kwargs)
+      : m_method(method), m_method_func(std::move(method_func)) {
+    m_kwargs.set_kwargs(kwargs);
   }
+  Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
+        Dictionary &&kwargs = {})
+      : m_method(method), m_method_func(std::move(method_func)) {
+    m_kwargs.set_kwargs(std::forward<Dictionary>(kwargs));
+  }
+
+  Trace() : Trace(PlotlyMsg::Trace::graph_objects, "") {}
 
   friend std::ostream &operator<<(std::ostream &out, Trace const &fig) {
     out << "trace<" << fig.m_method << "|" << fig.m_method_func << "|"
@@ -202,22 +212,33 @@ public:
     m_traces[idx].m_kwargs.set_kwargs(value);
   }
 
-  void add_trace_by_kwargs(Dictionary &value) {
+  void add_trace(Trace &trace) {
+    // auto add trace if it's just one less than what we had
+    add_trace();
+    m_traces[size() - 1].m_kwargs.set_kwargs(trace.m_kwargs);
+    m_traces[size() - 1].m_method = trace.m_method;
+    m_traces[size() - 1].m_method_func = trace.m_method_func;
+  }
+
+  // r-value
+  void add_trace(Trace &&trace) { add_trace(trace); }
+
+  void add_trace(Dictionary &value) {
     // auto add trace if it's just one less than what we had
     add_trace();
     m_traces[size() - 1].m_kwargs.set_kwargs(value);
   }
 
   // r-value
-  void add_trace_by_kwargs(Dictionary &&value) {
+  void add_trace(Dictionary &&value) {
     Dictionary new_dict(std::forward<Dictionary>(value));
-    add_trace_by_kwargs(new_dict);
+    add_trace(new_dict);
   }
 
   template <typename T>
-  void add_trace_by_kwargs(const PlotlyMsg::Trace::CreationMethods method,
-                           const std::string &method_func, T value) {
-    add_trace_by_kwargs(std::forward<T>(value));
+  void add_trace(const PlotlyMsg::Trace::CreationMethods method,
+                 const std::string &method_func, T value) {
+    add_trace(std::forward<T>(value));
     m_traces[size() - 1].m_method = method;
     m_traces[size() - 1].m_method_func = method_func;
   }

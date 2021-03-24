@@ -258,7 +258,8 @@ class Cpp2PyPlotly:
     def parse_msg_to_plotly_fig(self, msg):
         """Give a parsed msg (in terms of dict and friends), add a plotly figure."""
         self.stored_msgs.append(msg)
-        if type(msg) is not msg_pb2.Figure:
+        if 'uuid' not in msg:
+            # not a fig message
             return
         traces = []
         uuid = msg['uuid']

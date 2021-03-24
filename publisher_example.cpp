@@ -10,9 +10,9 @@ int main(int argc, char *argv[]) {
   auto y = std::vector<double>(20, 4.2);
   auto o = std::vector<int>(20, 7);
 
-  std::cout << Plotly::FigTemplate::Scatter() << std::endl;
-  std::cout << Plotly::FigTemplate::Scatter(x, y) << std::endl;
-  std::cout << Plotly::FigTemplate::ScatterWithColour(x, y, o) << std::endl;
+  std::cout << Plotly::TraceTemplate::Scatter() << std::endl;
+  std::cout << Plotly::TraceTemplate::Scatter(x, y) << std::endl;
+  std::cout << Plotly::TraceTemplate::ScatterWithColour(x, y, o) << std::endl;
 
   std::iota(std::begin(x), std::end(x), 0);
   std::iota(std::begin(y), std::end(y), 5);
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
   Plotly::Figure fig;
 
   fig.set_uuid("test_1");
-  fig.add_trace_by_kwargs(                   //
+  fig.add_trace_by_kwargs(          //
       Plotly::Dictionary(           //
           ditem("mode", "markers"), //
           ditem("x", x),            //
