@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
   Plotly::Figure fig;
 
   fig.set_uuid("test_1");
-  fig.set_kwargs(                   //
+  fig.add_trace_by_kwargs(                   //
       Plotly::Dictionary(           //
           ditem("mode", "markers"), //
           ditem("x", x),            //
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
                 )                                              //
           ));
 
-  std::cout << fig.get_dict_copy() << std::endl;
+  std::cout << fig.get_trace_copy(0) << std::endl;
   fig.send();
 
   Plotly::Dictionary dict;

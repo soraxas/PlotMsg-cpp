@@ -171,45 +171,82 @@ public:
 
 class Figure {
 public:
-  explicit Figure(std::string uuid = "default");
+  explicit Figure(const std::string &uuid = "default") {
+    m_msg.set_allocated_fig(new PlotlyMsg::Figure);
+    reset();
+  }
 
   void set_uuid(const std::string &_uuid) {
     m_uuid = _uuid;
-    m_msg.set_uuid(m_uuid);
+    m_fig->set_uuid(m_uuid);
   }
 
-  template <typename T> void add_kwargs(const std::string &key, T value) {
-    m_kwargs.add_kwargs(key, std::forward<T>(value));
+  void set_trace_kwargs(int idx, Plotly::Dictionary &value) {
+    if (idx >= size())
+      throw std::out_of_range("Given index exceed the number of traces.");
+    m_traces[idx].set_kwargs(value);
   }
 
-  void set_kwargs(Dictionary &value) { m_kwargs.set_kwargs(value); }
+  void add_trace_by_kwargs(Dictionary &value) {
+    // auto add trace if it's just one less than what we had
+    add_trace();
+    m_traces[size() - 1].set_kwargs(value);
+  }
 
-  // by r-value (uses l-value definition)
-  void set_kwargs(Dictionary &&value) { set_kwargs(value); }
+  // r-value
+  void add_trace_by_kwargs(Dictionary &&value) {
+    Dictionary new_dict(std::forward<Dictionary>(value));
+    add_trace_by_kwargs(new_dict);
+  }
 
-  Dictionary get_dict_copy() const {
-    Dictionary new_dict(m_kwargs);
-    return new_dict;
+  template <typename T>
+  void add_kwargs_to_trace(const std::string &key, T value) {
+    // default index to the last trace
+    add_kwargs_to_trace(size() - 1, key, std::forward<T>(value));
+  }
+
+  template <typename T>
+  void add_kwargs_to_trace(int idx, const std::string &key, T value) {
+    m_traces[idx].add_kwargs(key, value);
+  }
+
+  int add_trace() {
+    m_traces.emplace_back();
+    return size();
+  }
+
+  Dictionary &get_trace(int idx) { return m_traces[idx]; }
+
+  int size() const { return m_traces.size(); }
+
+  Dictionary get_trace_copy(int idx) const {
+    Dictionary new_copy(m_traces[idx]);
+    return new_copy;
   }
 
   void send(zmq::send_flags send_flags = zmq::send_flags::dontwait);
 
-  Dictionary *mutable_kwargs();
-
   void reset();
 
   friend std::ostream &operator<<(std::ostream &out, Figure const &fig) {
-    return out << "Figure<uuid:" << fig.m_uuid
-               << "|kwargs=" << fig.m_kwargs << ">";
+    out << "Figure<" << fig.m_uuid << "|";
+    for (auto &&trace : fig.m_traces) {
+      out << "[";
+      out << trace;
+      out << "]";
+    }
+    return out;
   }
+
+  std::vector<Dictionary> m_traces;
 
 private:
   zmq::message_t build_zmq_msg();
 
   // variables
-  PlotlyMsg::Figure m_msg;
+  PlotlyMsg::MessageContainer m_msg;
+  PlotlyMsg::Figure *m_fig;
   std::string m_uuid;
-  Dictionary m_kwargs;
 };
 
 } // namespace Plotly

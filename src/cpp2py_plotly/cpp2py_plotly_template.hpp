@@ -14,7 +14,7 @@ Plotly::Figure Scatter() {
   Plotly::Figure fig;
 
   fig.set_uuid("scatter");
-  fig.set_kwargs(                   //
+  fig.add_trace_by_kwargs(          //
       Plotly::Dictionary(           //
           ditem("mode", "markers"), //
           ditem("marker",
@@ -34,8 +34,8 @@ Plotly::Figure Scatter() {
 template <typename T1, typename T2>
 Plotly::Figure Scatter(std::vector<T1> x, std::vector<T2> y) {
   Plotly::Figure fig = Scatter();
-  fig.add_kwargs("x", x);
-  fig.add_kwargs("y", y);
+  fig.add_kwargs_to_trace(0, "x", x);
+  fig.add_kwargs_to_trace(0, "y", y);
   return fig;
 }
 
@@ -43,7 +43,7 @@ template <typename T1, typename T2, typename T3>
 Plotly::Figure ScatterWithColour(std::vector<T1> x, std::vector<T2> y,
                                  std::vector<T3> c) {
   Plotly::Figure fig = Scatter(x, y);
-  (*fig.mutable_kwargs()).add_kwargs("color", c);
+  fig.add_kwargs_to_trace(0, "color", c);
   return fig;
 }
 

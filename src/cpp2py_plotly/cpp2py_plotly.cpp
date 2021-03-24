@@ -68,21 +68,23 @@ DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
 ////////////////////////////////////////
 // implementation of Plotly Figure
 ////////////////////////////////////////
-Figure::Figure(std::string uuid) : m_uuid(std::move(uuid)) { reset(); }
 
 void Figure::send(zmq::send_flags send_flags) {
   initialise_publisher();
   // swap kwargs in the dictionary container with the protobuf internal msg
-  auto kwargs_ptr = m_kwargs.release_ptr();
-  m_msg.mutable_kwargs()->Swap(kwargs_ptr);
-  m_kwargs.m_msg = std::unique_ptr<DictionaryMsg>(kwargs_ptr);
-
+  for (int i = 0; i < size(); ++i) {
+    m_fig->add_traces();
+    m_fig->mutable_traces(i)->mutable_kwargs()->Swap(m_traces[i].release_ptr());
+  }
+  m_traces.clear();
   static_publisher->send(build_zmq_msg(), send_flags);
 }
 
 void Figure::reset() {
   m_msg.Clear();
-  m_msg.set_uuid(m_uuid);
+  m_fig = m_msg.mutable_fig();
+  m_traces.clear();
+  set_uuid(m_uuid);
 }
 zmq::message_t Figure::build_zmq_msg() {
   // serial protobuf to string
@@ -151,8 +153,6 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
                       Plotly::Dictionary &&value) {
   _set_DictItemVal(item_val, value);
 }
-
-Dictionary *Figure::mutable_kwargs() { return &m_kwargs; }
 
 std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict) {
   out << "Dict(";

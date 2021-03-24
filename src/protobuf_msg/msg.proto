@@ -4,44 +4,48 @@ package PlotlyMsg;
 //import "google/protobuf/struct.proto";
 
 message SeriesD {
-    repeated double data = 1 [packed=true];
+  repeated double data = 1 [packed = true];
 }
 
 message SeriesI {
-    repeated int32 data = 1 [packed=true];
-}
-
-message FigureType {
-    enum PlotlyFigureType {
-        scatter = 0;
-        bar = 1;
-        imshow = 2;
-        plot = 3;
-    }
-    oneof type {
-        PlotlyFigureType predefined = 1;
-        string           custom = 2;
-    }
+  repeated int32 data = 1 [packed = true];
 }
 
 message DictItemVal {
-    oneof value {
-        Dictionary dict = 1;
-        SeriesD    series_d = 2;
-        SeriesI    series_i = 3;
-        string     string = 4;
-        double     double = 5;
-        int32      int = 6;
-        bool       bool = 7;
-    }
+  oneof value {
+    Dictionary dict = 1;
+    SeriesD    series_d = 2;
+    SeriesI    series_i = 3;
+    string     string = 4;
+    double     double = 5;
+    int32      int = 6;
+    bool       bool = 7;
+  }
 }
 
 message Dictionary {
-    map<string, DictItemVal> data = 1;
+  map<string, DictItemVal> data = 1;
+}
+
+message Trace {
+  enum TraceType {
+    figure_object = 0;
+    figure_factory = 1;
+    plotly_express = 2;
+    custom = 3;
+  }
+  TraceType type = 1;
+  Dictionary kwargs = 2;
 }
 
 message Figure {
-    string uuid = 1;
-    Dictionary kwargs = 2;
+  string uuid = 1;
+  repeated Trace traces = 2;
 }
 
+message MessageContainer {
+  oneof message {
+    Dictionary dict = 1;
+    Figure      fig = 2;
+  }
+}
