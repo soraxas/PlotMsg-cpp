@@ -72,25 +72,42 @@ DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
 void Figure::send(zmq::send_flags send_flags) {
   initialise_publisher();
   // swap kwargs in the dictionary container with the protobuf internal msg
+  auto _fig = m_msg.mutable_fig();
+  _fig->set_uuid(m_uuid);
+
   for (int i = 0; i < size(); ++i) {
-    m_fig->add_traces();
-    m_fig->mutable_traces(i)->mutable_kwargs()->Swap(m_traces[i].release_ptr());
+    _fig->add_traces();
+    auto trace = _fig->mutable_traces(i);
+    trace->mutable_kwargs()->Swap(m_traces[i].m_kwargs.release_ptr());
+    trace->set_method(m_traces[i].m_method);
+    trace->set_method_func(m_traces[i].m_method_func);
   }
+
+  std::string encoded_msg;
+  m_msg.SerializeToString(&encoded_msg);
+  zmq::message_t zmq_msg(encoded_msg.size());
+  memcpy((void *)zmq_msg.data(), encoded_msg.c_str(), encoded_msg.size());
+  static_publisher->send(zmq_msg, send_flags);
+
   m_traces.clear();
-  static_publisher->send(build_zmq_msg(), send_flags);
 }
 
 void Figure::reset() {
   m_msg.Clear();
-  m_fig = m_msg.mutable_fig();
   m_traces.clear();
+  m_msg.set_allocated_fig(new PlotlyMsg::Figure());
   set_uuid(m_uuid);
 }
 zmq::message_t Figure::build_zmq_msg() {
   // serial protobuf to string
   std::string encoded_msg;
+
+  std::cout << "|>"
+            << m_msg.mutable_fig()->mutable_traces()->Get(0).kwargs().data()
+            << std::endl;
   m_msg.SerializeToString(&encoded_msg);
   // memcpy to a zmq m_msg
+  std::cout << "size   " << encoded_msg.size() << std::endl;
   zmq::message_t zmq_msg(encoded_msg.size());
   memcpy((void *)zmq_msg.data(), encoded_msg.c_str(), encoded_msg.size());
   return zmq_msg;
@@ -154,7 +171,8 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
   _set_DictItemVal(item_val, value);
 }
 
-std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict) {
+std::ostream &operator<<(std::ostream &out, const DictionaryMsgData &dict) {
+  return out;
   out << "Dict(";
   bool first_item = true;
   for (auto &&it = dict.begin(); it != dict.end(); ++it) {

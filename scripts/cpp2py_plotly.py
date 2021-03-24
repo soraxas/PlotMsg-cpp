@@ -72,18 +72,25 @@ class Cpp2PyReciever:
         """Recursive unpack method"""
 
         def unpack(inputs):
-            if type(inputs) is msg_pb2.Dictionary:
+            inputs_t = type(inputs)
+            if inputs_t is msg_pb2.Dictionary:
                 return {k: unpack(v) for (k, v) in inputs.data.items()}
-            if type(inputs) is msg_pb2.DictItemVal:
+            if inputs_t is msg_pb2.DictItemVal:
                 return unpack(getattr(inputs, inputs.WhichOneof('value')))
-            elif type(inputs) in (msg_pb2.SeriesI, msg_pb2.SeriesD):
+            elif inputs_t in (msg_pb2.SeriesI, msg_pb2.SeriesD):
                 return np.array(inputs.data)
-            elif type(inputs) in (bool, str, float, int):
+            elif inputs_t in (bool, str, float, int):
                 return inputs
+            elif inputs_t == msg_pb2.Trace:
+                return dict(method=msg_pb2.Trace.CreationMethods.Name(inputs.method),
+                            func=inputs.method_func,
+                            kwargs=unpack(inputs.kwargs))
+            elif inputs_t == msg_pb2.Figure:
+                return dict(uuid=inputs.uuid, traces=[unpack(t) for t in inputs.traces])
             else:
-                raise RuntimeError("Unrecognised type {}".format(type(inputs)))
+                raise RuntimeError("Unrecognised type {}".format(inputs_t))
 
-        return msg.uuid, unpack(msg.kwargs)
+        return unpack(getattr(msg, msg.WhichOneof('message')))
 
     def initialise(self, sleep=1, mode=CPP2PY_MODE_DEFAULT):
         if self.mode == mode:
@@ -102,7 +109,7 @@ class Cpp2PyReciever:
         time.sleep(sleep)
 
     def _get_msg(self, encoded_msg):
-        msg = msg_pb2.Figure()
+        msg = msg_pb2.MessageContainer()
         msg.ParseFromString(encoded_msg)
         return self.unpack_msg(msg)  # uuid, fig_kwargs
 
@@ -129,14 +136,16 @@ class Cpp2PyPlotly:
     class InfoLabelCtxMgr:
         """A class that represent a context manager for usage during processing msg."""
 
-        def __init__(self, label, stored_figs):
+        def __init__(self, label, stored_figs, stored_msgs):
             self.label = label
             self.stored_figs = stored_figs
-            self.num_msgs = 0
+            self.stored_msgs = stored_msgs
+            self.hist_num_msgs = 0
             self.label_format = "<i class='fa fa-{icon}'></i> <b>{short_txt}</b>  " \
                                 "|  <b>Last msg:</b> {timestamp}  " \
-                                "|  <b>Total num figs:</b> {num_fig}, " \
-                                "<b>num msgs:</b> {num_msgs}"
+                                "|  <b>Stored figs:</b> {num_fig}, " \
+                                "|  <b>Stored msgs:</b> {num_msgs}, " \
+                                "|  <b>Total historic msgs:</b> {hist_num_msgs}"
             self.last_msg_ts = "No msg."
 
         def __enter__(self):
@@ -147,9 +156,10 @@ class Cpp2PyPlotly:
                 short_txt='Processing',
                 timestamp=self.last_msg_ts,
                 num_fig=len(self.stored_figs),
-                num_msgs=self.num_msgs,
+                num_msgs=len(self.stored_msgs),
+                hist_num_msgs=self.hist_num_msgs,
             )
-            self.num_msgs += 1
+            self.hist_num_msgs += 1
 
         def __exit__(self, exc_type, exc_value, exc_traceback):
             icon = 'check'
@@ -162,14 +172,17 @@ class Cpp2PyPlotly:
                 short_txt=short_txt,
                 timestamp=self.last_msg_ts,
                 num_fig=len(self.stored_figs),
-                num_msgs=self.num_msgs,
+                num_msgs=len(self.stored_msgs),
+                hist_num_msgs=self.hist_num_msgs,
             )
 
     def __init__(self, address=CPP2PY_ADDRESS, mode=CPP2PY_MODE_WIDGET):
         # the stored figs is a singleton
         if not hasattr(self.__class__, "stored_figs"):
             self.__class__.stored_figs = {}
+            self.__class__.stored_msgs = []
         self.stored_figs = self.__class__.stored_figs
+        self.stored_msgs = self.__class__.stored_msgs
 
         if mode == CPP2PY_MODE_WIDGET:
             if not inside_notebook():
@@ -217,7 +230,8 @@ class Cpp2PyPlotly:
         self.ctx_mgr_captured_log = ipywidgets.widgets.Output(
             layout={'border': '1px solid black'})
         self.ctx_mgr_info_label = self.__class__.InfoLabelCtxMgr(self.w_info_label,
-                                                                 self.stored_figs)
+                                                                 self.stored_figs,
+                                                                 self.stored_msgs)
         self.w_info_containers = ipywidgets.HBox(
             children=[
                 self.w_refresh_btn,
@@ -243,13 +257,36 @@ class Cpp2PyPlotly:
 
     def parse_msg_to_plotly_fig(self, msg):
         """Give a parsed msg (in terms of dict and friends), add a plotly figure."""
-        uuid, fig_kwargs = msg
-        plotly_fig_widget = self.goFigClass(
-            go.Scatter(
-                **fig_kwargs
-            )
-        )
-        #                 self.update_figure_widget(plotly_fig_widget, uuid=uuid)
+        self.stored_msgs.append(msg)
+        if type(msg) is not msg_pb2.Figure:
+            return
+        traces = []
+        uuid = msg['uuid']
+        for t in msg['traces']:
+            method = t['method']
+            func = t['func']
+            if func == '':  # default to scatter
+                func = 'scatter'
+            if method == 'graph_objects':
+                import plotly.graph_objects
+                func = func.title()
+                traces.append(getattr(plotly.graph_objects, func)(
+                    **t['kwargs']
+                ))
+            elif method == 'plotly_express':
+                import plotly.express
+                traces.extend(getattr(plotly.express, func)(
+                    **t['kwargs']
+                ).data)
+            elif method == 'figure_factory':
+                import plotly.figure_factory
+                traces.extend(getattr(plotly.figure_factory, func)(
+                    **t['kwargs']
+                ).data)
+            else:
+                raise NotImplementedError(method)
+        plotly_fig_widget = self.goFigClass(traces)
+        # self.update_figure_widget(plotly_fig_widget, uuid=uuid)
         self.add_figure_widget(plotly_fig_widget, uuid=uuid)
         if self.mode == CPP2PY_MODE_DEFAULT:
             plotly_fig_widget.show()
@@ -299,12 +336,14 @@ class Cpp2PyPlotly:
             prev_sel = self.w_multi_fig_sel.value
             self.w_multi_fig_sel.options = self.stored_figs.keys()
             # self.multi_figs_selections.value = []
-            self.w_multi_fig_sel.value = prev_sel
+            if prev_sel:
+                self.w_multi_fig_sel.value = prev_sel
         if self.w_single_fig_sel is not None:
             prev_sel = self.w_single_fig_sel.value
             self.w_single_fig_sel.options = self.stored_figs.keys()
             # self.single_fig_selections.value = None
-            self.w_single_fig_sel.value = prev_sel
+            if prev_sel:
+                self.w_single_fig_sel.value = prev_sel
 
     @ipywidget_mode(True)
     def remove_figure_widget(self, uuid):

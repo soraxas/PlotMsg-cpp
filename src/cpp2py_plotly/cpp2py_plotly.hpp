@@ -166,37 +166,60 @@ public:
 };
 
 ////////////////////////////////////////
-// Figure classplementation
+// Trace class implementation
+////////////////////////////////////////
+class Trace {
+public:
+  Trace() {
+    m_method_func = "";
+    m_method = PlotlyMsg::Trace::graph_objects;
+  }
+
+  friend std::ostream &operator<<(std::ostream &out, Trace const &fig) {
+    out << "trace<" << fig.m_method << "|" << fig.m_method_func << "|"
+        << fig.m_kwargs << ">";
+    return out;
+  }
+
+  PlotlyMsg::Trace::CreationMethods m_method;
+  std::string m_method_func;
+  Dictionary m_kwargs;
+};
+
+////////////////////////////////////////
+// Figure class implementation
 ////////////////////////////////////////
 
 class Figure {
 public:
-  explicit Figure(const std::string &uuid = "default") {
-    m_msg.set_allocated_fig(new PlotlyMsg::Figure);
-    reset();
-  }
+  explicit Figure(const std::string &uuid = "default") { reset(); }
 
-  void set_uuid(const std::string &_uuid) {
-    m_uuid = _uuid;
-    m_fig->set_uuid(m_uuid);
-  }
+  void set_uuid(const std::string &_uuid) { m_uuid = _uuid; }
 
   void set_trace_kwargs(int idx, Plotly::Dictionary &value) {
     if (idx >= size())
       throw std::out_of_range("Given index exceed the number of traces.");
-    m_traces[idx].set_kwargs(value);
+    m_traces[idx].m_kwargs.set_kwargs(value);
   }
 
   void add_trace_by_kwargs(Dictionary &value) {
     // auto add trace if it's just one less than what we had
     add_trace();
-    m_traces[size() - 1].set_kwargs(value);
+    m_traces[size() - 1].m_kwargs.set_kwargs(value);
   }
 
   // r-value
   void add_trace_by_kwargs(Dictionary &&value) {
     Dictionary new_dict(std::forward<Dictionary>(value));
     add_trace_by_kwargs(new_dict);
+  }
+
+  template <typename T>
+  void add_trace_by_kwargs(const PlotlyMsg::Trace::CreationMethods method,
+                           const std::string &method_func, T value) {
+    add_trace_by_kwargs(std::forward<T>(value));
+    m_traces[size() - 1].m_method = method;
+    m_traces[size() - 1].m_method_func = method_func;
   }
 
   template <typename T>
@@ -207,7 +230,7 @@ public:
 
   template <typename T>
   void add_kwargs_to_trace(int idx, const std::string &key, T value) {
-    m_traces[idx].add_kwargs(key, value);
+    m_traces[idx].m_kwargs.add_kwargs(key, value);
   }
 
   int add_trace() {
@@ -215,12 +238,12 @@ public:
     return size();
   }
 
-  Dictionary &get_trace(int idx) { return m_traces[idx]; }
+  Dictionary &get_trace(int idx) { return m_traces[idx].m_kwargs; }
 
   int size() const { return m_traces.size(); }
 
   Dictionary get_trace_copy(int idx) const {
-    Dictionary new_copy(m_traces[idx]);
+    Dictionary new_copy(m_traces[idx].m_kwargs);
     return new_copy;
   }
 
@@ -231,21 +254,19 @@ public:
   friend std::ostream &operator<<(std::ostream &out, Figure const &fig) {
     out << "Figure<" << fig.m_uuid << "|";
     for (auto &&trace : fig.m_traces) {
-      out << "[";
       out << trace;
-      out << "]";
     }
+    out << ">";
     return out;
   }
 
-  std::vector<Dictionary> m_traces;
+  std::vector<Trace> m_traces;
 
 private:
   zmq::message_t build_zmq_msg();
 
   // variables
   PlotlyMsg::MessageContainer m_msg;
-  PlotlyMsg::Figure *m_fig;
   std::string m_uuid;
 };
 

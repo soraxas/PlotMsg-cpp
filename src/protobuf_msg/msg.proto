@@ -28,14 +28,15 @@ message Dictionary {
 }
 
 message Trace {
-  enum TraceType {
-    figure_object = 0;
+  enum CreationMethods {
+    graph_objects = 0;
     figure_factory = 1;
     plotly_express = 2;
     custom = 3;
   }
-  TraceType type = 1;
-  Dictionary kwargs = 2;
+  Dictionary kwargs = 1;
+  CreationMethods method = 2;
+  string method_func = 3;
 }
 
 message Figure {
