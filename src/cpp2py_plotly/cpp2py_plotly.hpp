@@ -261,6 +261,20 @@ public:
 
   Dictionary &get_trace(int idx) { return m_traces[idx].m_kwargs; }
 
+  Trace &trace(int idx) {
+    if (idx < 0) {
+      // negative indexing, wraps around.
+      idx = size() + idx;
+      if (idx < 0)
+        throw std::out_of_range(
+            "Given negative index exceed the number of traces.");
+    }
+    if (idx >= size()) {
+      throw std::out_of_range("Given index exceed the number of traces.");
+    }
+    return m_traces[idx];
+  }
+
   int size() const { return m_traces.size(); }
 
   Dictionary get_trace_copy(int idx) const {
@@ -272,14 +286,7 @@ public:
 
   void reset();
 
-  friend std::ostream &operator<<(std::ostream &out, Figure const &fig) {
-    out << "Figure<" << fig.m_uuid << "|";
-    for (auto &&trace : fig.m_traces) {
-      out << trace;
-    }
-    out << ">";
-    return out;
-  }
+  friend std::ostream &operator<<(std::ostream &out, Figure const &fig);
 
   std::vector<Trace> m_traces;
 

@@ -13,19 +13,13 @@ using ditem = Plotly::Dictionary::DictionaryItemPair;
 Plotly::Trace Scatter() {
   return Plotly::Trace( //
       PlotlyMsg::Trace::graph_objects, "Scatter",
-      Plotly::Dictionary(    //
-          "mode", "markers", //
-          "marker",
-          Plotly::Dictionary(          //
-              "size", 10,              //
-              "opacity", 0.9,          //
-              "colorscale", "Viridis", //
-              "colorbar",
-              Plotly::Dictionary(     //
-                  "title", "Colorbar" //
-                  )                   //
-              )                       //
-          )                           //
+      Plotly::Dictionary(                     //
+          "mode", "markers",                  //
+          "marker_size", 10,                  //
+          "marker_opacity", 0.9,              //
+          "marker_colorscale", "Viridis",     //
+          "marker_colorbar_title", "Colorbar" //
+          )                                   //
   );
 }
 

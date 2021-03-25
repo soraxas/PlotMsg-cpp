@@ -117,6 +117,14 @@ zmq::message_t Figure::build_zmq_msg() {
   memcpy((void *)zmq_msg.data(), encoded_msg.c_str(), encoded_msg.size());
   return zmq_msg;
 }
+std::ostream &operator<<(std::ostream &out, const Figure &fig) {
+  out << "Figure<" << fig.m_uuid << "|";
+  for (auto &&trace : fig.m_traces) {
+    out << trace;
+  }
+  out << ">";
+  return out;
+}
 
 ////////////////////////////////////////
 // Helpers
