@@ -141,11 +141,11 @@ class Cpp2PyPlotly:
             self.stored_figs = stored_figs
             self.stored_msgs = stored_msgs
             self.hist_num_msgs = 0
-            self.label_format = "<i class='fa fa-{icon}'></i> <b>{short_txt}</b>  " \
-                                "|  <b>Last msg:</b> {timestamp}  " \
-                                "|  <b>Stored figs:</b> {num_fig}, " \
-                                "|  <b>Stored msgs:</b> {num_msgs}, " \
-                                "|  <b>Total historic msgs:</b> {hist_num_msgs}"
+            self.label_format = "<i class='fa fa-{icon}'></i> <b>{short_txt}</b>  |  " \
+                                "<b>Last msg:</b> {timestamp}  |  " \
+                                "<b><u>Stored</u> figs:</b> {num_fig} " \
+                                "<b>msgs:</b> {num_msgs}  |  " \
+                                "<b>Historic msgs:</b> {hist_num_msgs}"
             self.last_msg_ts = "No msg."
 
         def __enter__(self):
@@ -175,6 +175,29 @@ class Cpp2PyPlotly:
                 num_msgs=len(self.stored_msgs),
                 hist_num_msgs=self.hist_num_msgs,
             )
+
+    class ProgressBarCtxMgr:
+        """A class that represent a context manager for usage during processing msg."""
+
+        def __init__(self):
+            self.w_progress_bar = ipywidgets.IntProgress(
+                value=0,
+                min=0,
+                max=1,
+                description='Progress:',
+                bar_style='info'
+            )
+            self.w_progress_bar.layout.display = 'none'
+
+        def add(self):
+            self.w_progress_bar.value += 1
+            if self.w_progress_bar.value == self.w_progress_bar.max:
+                self.w_progress_bar.bar_style = 'success'
+
+        def start(self, num):
+            self.w_progress_bar.layout.display = ''
+            self.w_progress_bar.value = 0
+            self.w_progress_bar.max = num
 
     def __init__(self, address=CPP2PY_ADDRESS, mode=CPP2PY_MODE_WIDGET):
         # the stored figs is a singleton
@@ -232,10 +255,16 @@ class Cpp2PyPlotly:
         self.ctx_mgr_info_label = self.__class__.InfoLabelCtxMgr(self.w_info_label,
                                                                  self.stored_figs,
                                                                  self.stored_msgs)
-        self.w_info_containers = ipywidgets.HBox(
+        self.ctx_mgr_pbar = self.__class__.ProgressBarCtxMgr()
+        self.w_info_containers = ipywidgets.VBox(
             children=[
-                self.w_refresh_btn,
-                self.w_info_label,
+                ipywidgets.HBox(
+                    children=[
+                        self.w_refresh_btn,
+                        self.w_info_label,
+                    ]
+                ),
+                self.ctx_mgr_pbar.w_progress_bar
             ]
         )
         ##
@@ -257,12 +286,14 @@ class Cpp2PyPlotly:
 
     def parse_msg_to_plotly_fig(self, msg):
         """Give a parsed msg (in terms of dict and friends), add a plotly figure."""
-        self.stored_msgs.append(msg)
+        self.stored_msgs.append([False, msg])
         if 'uuid' not in msg:
             # not a fig message
             return
         traces = []
         uuid = msg['uuid']
+        # setup progress bar widget
+        self.ctx_mgr_pbar.start(len(msg['traces']))
         for t in msg['traces']:
             method = t['method']
             func = t['func']
@@ -286,6 +317,11 @@ class Cpp2PyPlotly:
                 ).data)
             else:
                 raise NotImplementedError(method)
+            self.ctx_mgr_pbar.add()  # update progress
+
+        # successfully parsed message. Update stored_msgs
+        self.stored_msgs[-1][0] = True
+        # create the actual figure
         plotly_fig_widget = self.goFigClass(traces)
         # self.update_figure_widget(plotly_fig_widget, uuid=uuid)
         self.add_figure_widget(plotly_fig_widget, uuid=uuid)
@@ -380,20 +416,30 @@ class Cpp2PyPlotly:
 
         def _update_attr(existing, new):
             for _attr in new:
+                cur_attr = existing[_attr]
+                new_attr = new[_attr]
                 # actual update of existing plotly figure is slow.
                 # so we will opt to only update attribute that are
                 # different (with overhead of checking equality)
                 # if type is np array, we don't bother to check for equality
                 # nope. we will check shape and eq_val
-                if type(new[_attr]) is np.ndarray and np.array_equal(
-                        existing[_attr], new[_attr]):
-                    continue
-                elif type(new[_attr]) is dict:
-                    _update_attr(existing[_attr], new[_attr])
-                elif existing[_attr] == new[_attr]:
+                if cur_attr is not None and new_attr is not None:
+                    # if any is None, type will obviously be different.
+                    if type(cur_attr) != type(new_attr):
+                        # NOT possible to update this.
+                        print(f"WARN: The attr {_attr} for a new incoming msg is "
+                              f"different than the existing one. "
+                              f"Was type {type(cur_attr)}, now {type(new_attr)}")
+                        raise NotImplementedError("Should recreate the figure instead.")
+                elif isinstance(new_attr, np.ndarray):
+                    if np.array_equal(cur_attr, new_attr):
+                        continue
+                elif type(new_attr) is dict:
+                    _update_attr(cur_attr, new_attr)
+                elif cur_attr == new_attr:
                     continue
                 else:
-                    existing[_attr] = new[_attr]
+                    existing[_attr] = new_attr
 
         for stored_seq, new_widget_seq in zip(self.stored_figs[uuid].data, widget.data):
             _update_attr(stored_seq, new_widget_seq)
