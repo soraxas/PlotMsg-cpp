@@ -38,9 +38,9 @@ def ipywidget_mode(warn=False):
 def inside_notebook():
     try:
         shell = get_ipython().__class__.__name__
-        if shell == 'ZMQInteractiveShell':
+        if shell == "ZMQInteractiveShell":
             return True  # Jupyter notebook or qtconsole
-        elif shell == 'TerminalInteractiveShell':
+        elif shell == "TerminalInteractiveShell":
             return False  # Terminal running IPython
         else:
             return False  # Other type (?)
@@ -76,22 +76,32 @@ class Cpp2PyReciever:
             if inputs_t is msg_pb2.Dictionary:
                 return {k: unpack(v) for (k, v) in inputs.data.items()}
             if inputs_t is msg_pb2.DictItemVal:
-                return unpack(getattr(inputs, inputs.WhichOneof('value')))
+                return unpack(getattr(inputs, inputs.WhichOneof("value")))
             elif inputs_t in (msg_pb2.SeriesI, msg_pb2.SeriesD):
                 return np.array(inputs.data)
             elif inputs_t in (bool, str, float, int):
                 return inputs
             elif inputs_t == msg_pb2.Trace:
-                return dict(method=msg_pb2.Trace.CreationMethods.Name(inputs.method),
-                            func=inputs.method_func,
-                            kwargs=unpack(inputs.kwargs))
+                return dict(
+                    method=msg_pb2.Trace.CreationMethods.Name(inputs.method),
+                    func=inputs.method_func,
+                    kwargs=unpack(inputs.kwargs),
+                )
             elif inputs_t == msg_pb2.Figure:
-                return dict(uuid=inputs.uuid, traces=[unpack(t) for t in inputs.traces])
+                return dict(
+                    uuid=inputs.uuid,
+                    traces=[unpack(t) for t in inputs.traces],
+                    commands=[
+                        dict(func=cmd.func, kwargs=unpack(cmd.kwargs))
+                        for cmd in inputs.commands
+                    ],
+                )
             else:
                 raise RuntimeError("Unrecognised type {}".format(inputs_t))
 
-        return unpack(getattr(msg, msg.WhichOneof('message')))
+        return unpack(getattr(msg, msg.WhichOneof("message")))
 
+    # noinspection PyUnresolvedReferences
     def initialise(self, sleep=1, mode=CPP2PY_MODE_DEFAULT):
         if self.mode == mode:
             return
@@ -136,44 +146,40 @@ class Cpp2PyPlotly:
     class InfoLabelCtxMgr:
         """A class that represent a context manager for usage during processing msg."""
 
-        def __init__(self, label, stored_figs, stored_msgs):
-            self.label = label
-            self.stored_figs = stored_figs
-            self.stored_msgs = stored_msgs
-            self.hist_num_msgs = 0
-            self.label_format = "<i class='fa fa-{icon}'></i> <b>{short_txt}</b>  |  " \
-                                "<b>Last msg:</b> {timestamp}  |  " \
-                                "<b><u>Stored</u> figs:</b> {num_fig} " \
-                                "<b>msgs:</b> {num_msgs}  |  " \
-                                "<b>Historic msgs:</b> {hist_num_msgs}"
+        def __init__(self, c2p: "Cpp2PyPlotly"):
+            self.label = ipywidgets.HTML()
+            self.c2p = c2p
+            self.label_format = (
+                "<i class='fa fa-{icon}'></i> <b>{short_txt}</b>  |  "
+                "<b>Last msg:</b> {timestamp}  |  "
+                "<b><u>Stored</u> figs:</b> {num_figs} "
+                "<b>msgs:</b> {num_msgs}  |  "
+                "<b>Historic msgs:</b> {hist_num_msgs}"
+            )
             self.last_msg_ts = "No msg."
 
         def __enter__(self):
             # self.last_msg_ts = time.strftime('%d-%m_%H:%M', time.localtime())
-            self.last_msg_ts = time.strftime('%H:%M', time.localtime())
-            self.label.value = self.label_format.format(
-                icon='retweet',
-                short_txt='Processing',
-                timestamp=self.last_msg_ts,
-                num_fig=len(self.stored_figs),
-                num_msgs=len(self.stored_msgs),
-                hist_num_msgs=self.hist_num_msgs,
-            )
-            self.hist_num_msgs += 1
+            self.last_msg_ts = time.strftime("%H:%M", time.localtime())
+            self.update_label("Processing", "retweet")
+            self.c2p.hist_num_msgs += 1
 
         def __exit__(self, exc_type, exc_value, exc_traceback):
-            icon = 'check'
-            short_txt = 'OK!'
+            icon = "check"
+            short_txt = "OK!"
             if exc_type is not None:
-                icon = 'times'
-                short_txt = 'Error occured (check captured log)'
+                icon = "times"
+                short_txt = "Error occured (check captured log)"
+            self.update_label(short_txt, icon)
+
+        def update_label(self, short_txt, icon="check"):
             self.label.value = self.label_format.format(
                 icon=icon,
                 short_txt=short_txt,
                 timestamp=self.last_msg_ts,
-                num_fig=len(self.stored_figs),
-                num_msgs=len(self.stored_msgs),
-                hist_num_msgs=self.hist_num_msgs,
+                num_figs=self.c2p.num_figs,
+                num_msgs=self.c2p.num_msgs,
+                hist_num_msgs=self.c2p.hist_num_msgs,
             )
 
     class ProgressBarCtxMgr:
@@ -181,31 +187,35 @@ class Cpp2PyPlotly:
 
         def __init__(self):
             self.w_progress_bar = ipywidgets.IntProgress(
-                value=0,
-                min=0,
-                max=1,
-                description='Progress:',
-                bar_style='info'
+                value=0, min=0, max=1, description="Progress:", bar_style="info"
             )
-            self.w_progress_bar.layout.display = 'none'
+            self.w_progress_bar.layout.display = "none"
 
         def add(self):
             self.w_progress_bar.value += 1
             if self.w_progress_bar.value == self.w_progress_bar.max:
-                self.w_progress_bar.bar_style = 'success'
+                self.w_progress_bar.bar_style = "success"
 
-        def start(self, num):
-            self.w_progress_bar.layout.display = ''
+        def start(self, num: int):
+            self.w_progress_bar.layout.display = ""
             self.w_progress_bar.value = 0
             self.w_progress_bar.max = num
 
-    def __init__(self, address=CPP2PY_ADDRESS, mode=CPP2PY_MODE_WIDGET):
+    #################################################
+
+    def __init__(
+        self,
+        address: str = CPP2PY_ADDRESS,
+        mode: str = CPP2PY_MODE_WIDGET,
+        initialise: bool = True,
+    ):
         # the stored figs is a singleton
         if not hasattr(self.__class__, "stored_figs"):
             self.__class__.stored_figs = {}
             self.__class__.stored_msgs = []
-        self.stored_figs = self.__class__.stored_figs
-        self.stored_msgs = self.__class__.stored_msgs
+        self.figs = self.__class__.stored_figs
+        self.msgs = self.__class__.stored_msgs
+        self.hist_num_msgs = 0
 
         if mode == CPP2PY_MODE_WIDGET:
             if not inside_notebook():
@@ -215,9 +225,11 @@ class Cpp2PyPlotly:
         if mode.startswith(CPP2PY_MODE_WIDGET):
             mode = CPP2PY_MODE_WIDGET
             self._initialise_as_ipywidgets()
-            self.reciever = Cpp2PyReciever(address=address,
-                                           ctx_mgr=self.ctx_mgr_info_label)
+            self.reciever = Cpp2PyReciever(
+                address=address, ctx_mgr=self.ctx_mgr_info_label
+            )
             self.goFigClass = go.FigureWidget
+
         elif mode == CPP2PY_MODE_DEFAULT:
             self.reciever = Cpp2PyReciever(address=address)
             self.ctx_mgr_chained = DummyCtxMgr
@@ -227,6 +239,8 @@ class Cpp2PyPlotly:
         self.mode = mode
         # reciever for msg from cpp side
         self.async_task = None
+        if initialise:
+            self.initialise()
 
     def __del__(self):
         # clean up any running async task
@@ -241,30 +255,54 @@ class Cpp2PyPlotly:
         self.w_single_fig_sel = None
         #######################
         self.w_refresh_btn = ipywidgets.Button(
-            description='Refresh',
+            description="Refresh",
             disabled=False,
-            button_style='',  # 'success', 'info', 'warning', 'danger' or ''
-            tooltip='Process plotly incoming messages',
-            icon='retweet'
+            button_style="",  # 'success', 'info', 'warning', 'danger' or ''
+            tooltip="Process plotly incoming messages",
+            icon="retweet",
         )
         self.w_refresh_btn.on_click(lambda x: self.spin_once(verbose=False))
-        self.w_info_label = ipywidgets.HTML(value="Started.")
         ##
         self.ctx_mgr_captured_log = ipywidgets.widgets.Output(
-            layout={'border': '1px solid black'})
-        self.ctx_mgr_info_label = self.__class__.InfoLabelCtxMgr(self.w_info_label,
-                                                                 self.stored_figs,
-                                                                 self.stored_msgs)
+            layout={"border": "1px solid black"}
+        )
+        self.ctx_mgr_info_label = self.__class__.InfoLabelCtxMgr(self)
+        self.ctx_mgr_info_label.update_label("Initialised")
         self.ctx_mgr_pbar = self.__class__.ProgressBarCtxMgr()
+        w_clear_msgs = ipywidgets.Button(
+            description="Clear msgs",
+            button_style="warning",  # 'danger' or ''
+            tooltip="Process plotly incoming messages",
+            icon="envelope-square",
+        )
+        w_clear_figs = ipywidgets.Button(
+            description="Clear figs",
+            button_style="danger",  # 'danger' or ''
+            tooltip="Process plotly incoming messages",
+            icon="file-image",
+        )
+
+        def on_clear_msgs(_):
+            self.msgs.clear()
+            self.ctx_mgr_info_label.update_label("Cleared msgs")
+
+        def on_clear_figs(_):
+            self.remove_figure_widget([uuid for uuid in self.figs])
+            self.ctx_mgr_info_label.update_label("Cleared figs")
+
+        w_clear_msgs.on_click(on_clear_msgs)
+        w_clear_figs.on_click(on_clear_figs)
         self.w_info_containers = ipywidgets.VBox(
             children=[
                 ipywidgets.HBox(
                     children=[
                         self.w_refresh_btn,
-                        self.w_info_label,
+                        w_clear_msgs,
+                        w_clear_figs,
+                        self.ctx_mgr_pbar.w_progress_bar,
                     ]
                 ),
-                self.ctx_mgr_pbar.w_progress_bar
+                self.ctx_mgr_info_label.label,
             ]
         )
         ##
@@ -279,57 +317,67 @@ class Cpp2PyPlotly:
         self.ctx_mgr_chained = ctx_mgr_chained
 
     @property
-    def spinning_asyncly(self):
+    def spinning_asyncly(self) -> bool:
         if self.async_task is not None and not self.async_task.cancelled():
             return True
         return False
 
+    @property
+    def num_figs(self) -> int:
+        return len(self.figs)
+
+    @property
+    def num_msgs(self) -> int:
+        return len(self.msgs)
+
     def parse_msg_to_plotly_fig(self, msg):
         """Give a parsed msg (in terms of dict and friends), add a plotly figure."""
-        self.stored_msgs.append([False, msg])
-        if 'uuid' not in msg:
+        self.msgs.append([False, msg])
+        if "uuid" not in msg:
             # not a fig message
             return
         traces = []
-        uuid = msg['uuid']
+        uuid = msg["uuid"]
         # setup progress bar widget
-        self.ctx_mgr_pbar.start(len(msg['traces']))
-        for t in msg['traces']:
-            method = t['method']
-            func = t['func']
-            if func == '':  # default to scatter
-                func = 'scatter'
-            if method == 'graph_objects':
+        self.ctx_mgr_pbar.start(len(msg["traces"]))
+        for t in msg["traces"]:
+            method = t["method"]
+            func = t["func"]
+            if func == "":  # default to scatter
+                func = "scatter"
+            if method == "graph_objects":
                 import plotly.graph_objects
+
                 func = func.title()
-                traces.append(getattr(plotly.graph_objects, func)(
-                    **t['kwargs']
-                ))
-            elif method == 'plotly_express':
+                traces.append(getattr(plotly.graph_objects, func)(**t["kwargs"]))
+            elif method == "plotly_express":
                 import plotly.express
-                traces.extend(getattr(plotly.express, func)(
-                    **t['kwargs']
-                ).data)
-            elif method == 'figure_factory':
+
+                traces.extend(getattr(plotly.express, func)(**t["kwargs"]).data)
+            elif method == "figure_factory":
                 import plotly.figure_factory
-                traces.extend(getattr(plotly.figure_factory, func)(
-                    **t['kwargs']
-                ).data)
+
+                traces.extend(getattr(plotly.figure_factory, func)(**t["kwargs"]).data)
             else:
                 raise NotImplementedError(method)
             self.ctx_mgr_pbar.add()  # update progress
 
         # successfully parsed message. Update stored_msgs
-        self.stored_msgs[-1][0] = True
         # create the actual figure
-        plotly_fig_widget = self.goFigClass(traces)
-        # self.update_figure_widget(plotly_fig_widget, uuid=uuid)
-        self.add_figure_widget(plotly_fig_widget, uuid=uuid)
+        plotly_fig = self.goFigClass(traces)
+        # operates action on the figure object
+        for cmd in msg["commands"]:
+            getattr(plotly_fig, cmd["func"])(**cmd["kwargs"])
+
+        self.msgs[-1][0] = True
+        # self.update_figure_widget(plotly_fig, uuid=uuid)
+        self.add_figure_widget(plotly_fig, uuid=uuid)
         if self.mode == CPP2PY_MODE_DEFAULT:
-            plotly_fig_widget.show()
+            plotly_fig.show()
 
     def spin_once(self, verbose=False):
         """spin once to process all pending messsages"""
+        # noinspection PyTypeChecker,PyUnresolvedReferences
         return self.spin(flags=zmq.NOBLOCK, exception_to_except=zmq.Again)
 
     def spin(self, flags=0, exception_to_except=KeyboardInterrupt):
@@ -371,48 +419,52 @@ class Cpp2PyPlotly:
         # force refresh by unsetting and setting the selection
         if self.w_multi_fig_sel is not None:
             prev_sel = self.w_multi_fig_sel.value
-            self.w_multi_fig_sel.options = self.stored_figs.keys()
+            self.w_multi_fig_sel.options = self.figs.keys()
             # self.multi_figs_selections.value = []
             if prev_sel:
                 self.w_multi_fig_sel.value = prev_sel
         if self.w_single_fig_sel is not None:
             prev_sel = self.w_single_fig_sel.value
-            self.w_single_fig_sel.options = self.stored_figs.keys()
+            self.w_single_fig_sel.options = self.figs.keys()
             # self.single_fig_selections.value = None
             if prev_sel:
                 self.w_single_fig_sel.value = prev_sel
 
     @ipywidget_mode(True)
-    def remove_figure_widget(self, uuid):
+    def remove_figure_widget(self, uuids):
         """Overwrite matching widget."""
         # remove selection options
-        if uuid in self.stored_figs:
-            wid = self.stored_figs[uuid]
-            wid.close()
-
+        if type(uuids) == str:
+            uuids = [uuids]
+        for uuid in uuids:
+            try:
+                wid = self.figs[uuid]
+                wid.close()
+            except KeyError:
+                pass
         self._update_selection()
 
     @ipywidget_mode(False)
-    def add_figure_widget(self, widget, uuid='default'):
+    def add_figure_widget(self, widget, uuid="default"):
         """Overwrite any existing widget."""
         assert type(widget) is self.goFigClass, type(widget)
 
-        if uuid in self.stored_figs:
+        if uuid in self.figs:
             print("FIX THIS")
             return self.update_figure_widget(widget, uuid)
 
         # remove selection options
         self.remove_figure_widget(uuid)
-        self.stored_figs[uuid] = widget
+        self.figs[uuid] = widget
 
         self._update_selection()
 
     @ipywidget_mode(False)
-    def update_figure_widget(self, widget, uuid='default'):
+    def update_figure_widget(self, widget, uuid="default"):
         assert type(widget) is go.FigureWidget, type(widget)
         """WARN: Assumes the line sequence are in the same order"""
-        assert uuid in self.stored_figs
-        assert len(self.stored_figs[uuid].data) == len(widget.data)
+        assert uuid in self.figs
+        assert len(self.figs[uuid].data) == len(widget.data)
 
         def _update_attr(existing, new):
             for _attr in new:
@@ -427,9 +479,11 @@ class Cpp2PyPlotly:
                     # if any is None, type will obviously be different.
                     if type(cur_attr) != type(new_attr):
                         # NOT possible to update this.
-                        print(f"WARN: The attr {_attr} for a new incoming msg is "
-                              f"different than the existing one. "
-                              f"Was type {type(cur_attr)}, now {type(new_attr)}")
+                        print(
+                            f"WARN: The attr {_attr} for a new incoming msg is "
+                            f"different than the existing one. "
+                            f"Was type {type(cur_attr)}, now {type(new_attr)}"
+                        )
                         raise NotImplementedError("Should recreate the figure instead.")
                 elif isinstance(new_attr, np.ndarray):
                     if np.array_equal(cur_attr, new_attr):
@@ -441,10 +495,16 @@ class Cpp2PyPlotly:
                 else:
                     existing[_attr] = new_attr
 
-        for stored_seq, new_widget_seq in zip(self.stored_figs[uuid].data, widget.data):
+        for stored_seq, new_widget_seq in zip(self.figs[uuid].data, widget.data):
             _update_attr(stored_seq, new_widget_seq)
 
         self._update_selection()
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}<figs:{self.num_figs}|msgs:{self.num_msgs}|"
+            f"total_recieved:{self.hist_num_msgs}>"
+        )
 
     ########################################
     ## multi-figs widget
@@ -452,17 +512,15 @@ class Cpp2PyPlotly:
     @ipywidget_mode()
     def display_ipywidget_multi_figs(self):
         self.w_multi_fig_sel = ipywidgets.widgets.SelectMultiple(
-            options=[], value=[],
-            description='Multi Fig(s)'
+            options=[], value=[], description="Multi Fig(s)"
         )
-        self.w_multi_fig_sel.options = self.stored_figs.keys()
+        self.w_multi_fig_sel.options = self.figs.keys()
         if self.mode == CPP2PY_MODE_WIDGET:
             display(self.w_info_containers)
 
         @ipywidgets.interact(widget_names=self.w_multi_fig_sel)
         def on_change(widget_names):
-            return ipywidgets.HBox(
-                children=[self.stored_figs[name] for name in widget_names])
+            return ipywidgets.HBox(children=[self.figs[name] for name in widget_names])
 
     ########################################
     ## single-fig widget
@@ -470,17 +528,16 @@ class Cpp2PyPlotly:
     @ipywidget_mode()
     def display_ipywidget_single_fig(self):
         self.w_single_fig_sel = ipywidgets.widgets.Dropdown(
-            options=[],
-            description='Show Fig'
+            options=[], description="Show Fig"
         )
-        self.w_single_fig_sel.options = self.stored_figs.keys()
+        self.w_single_fig_sel.options = self.figs.keys()
         if self.mode == CPP2PY_MODE_WIDGET:
             display(self.w_info_containers)
 
         @ipywidgets.interact(widget_names=self.w_single_fig_sel)
         def on_change(widget_names):
             if widget_names:
-                return self.stored_figs[widget_names]
+                return self.figs[widget_names]
 
     @ipywidget_mode()
     def display_parsing_log(self):
@@ -495,43 +552,38 @@ class Cpp2PyPlotly:
     @ipywidget_mode()
     def OLD_get_ipywidget_multi_figs(self):
         self.w_multi_fig_sel = ipywidgets.widgets.SelectMultiple(
-            options=[],
-            value=[],
-            description='Multi Fig(s)'
+            options=[], value=[], description="Multi Fig(s)"
         )
         inner_figs_container = ipywidgets.HBox(children=[])
         inner_figs_container = ipywidgets.widgets.GridBox(
             children=[],
-            layout=ipywidgets.Layout(grid_template_columns="repeat(2, 1fr)")
+            layout=ipywidgets.Layout(grid_template_columns="repeat(2, 1fr)"),
         )
 
         def on_change(event):
-            inner_figs_container.children = [self.stored_figs[name] for name in
-                                             event['new']]
+            inner_figs_container.children = [self.figs[name] for name in event["new"]]
 
-        self.w_multi_fig_sel.observe(on_change, 'value')
-        self.w_multi_fig_sel.options = self.stored_figs.keys()
+        self.w_multi_fig_sel.observe(on_change, "value")
+        self.w_multi_fig_sel.options = self.figs.keys()
         ## Outer widget
-        widget = ipywidgets.VBox(
-            children=[self.w_multi_fig_sel, inner_figs_container])
+        widget = ipywidgets.VBox(children=[self.w_multi_fig_sel, inner_figs_container])
         display(widget)
 
     @ipywidget_mode()
     def OLD_get_ipywidget_single_fig(self):
         self.w_single_fig_sel = ipywidgets.widgets.Dropdown(
-            options=[],
-            description='Show Fig'
+            options=[], description="Show Fig"
         )
         inner_figs_container = ipywidgets.HBox(children=[])
 
         def on_change(event):
-            inner_figs_container.children = [self.stored_figs[event['new']]]
+            inner_figs_container.children = [self.figs[event["new"]]]
 
-        self.w_single_fig_sel.observe(on_change, 'value')
-        self.w_single_fig_sel.options = self.stored_figs.keys()
+        self.w_single_fig_sel.observe(on_change, "value")
+        self.w_single_fig_sel.options = self.figs.keys()
         ## Outer widget
-        widget = ipywidgets.VBox(
-            children=[self.w_single_fig_sel, inner_figs_container])
+        widget = ipywidgets.VBox(children=[self.w_single_fig_sel, inner_figs_container])
         display(widget)
+
 
 # TODO: work on re-selecting previous figure after updating/creating figure(s)

@@ -155,9 +155,7 @@ public:
 
   std::unique_ptr<Dictionary> deep_copy() const;
 
-  friend std::ostream &operator<<(std::ostream &out, Dictionary const &dict) {
-    return out << (*dict.m_msg).data();
-  }
+  friend std::ostream &operator<<(std::ostream &out, Dictionary const &dict);
 
   void reset();
 
@@ -170,26 +168,18 @@ public:
 ////////////////////////////////////////
 // Trace class implementation
 ////////////////////////////////////////
+
 class Trace {
 public:
-  Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
-        Dictionary &kwargs)
-      : m_method(method), m_method_func(std::move(method_func)) {
-    m_kwargs.set_kwargs(kwargs);
-  }
-  Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
-        Dictionary &&kwargs = {})
-      : m_method(method), m_method_func(std::move(method_func)) {
-    m_kwargs.set_kwargs(std::forward<Dictionary>(kwargs));
-  }
-
   Trace() : Trace(PlotlyMsg::Trace::graph_objects, "") {}
 
-  friend std::ostream &operator<<(std::ostream &out, Trace const &fig) {
-    out << "trace<" << fig.m_method << "|" << fig.m_method_func << "|"
-        << fig.m_kwargs << ">";
-    return out;
-  }
+  Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
+        Dictionary &kwargs);
+
+  Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
+        Dictionary &&kwargs = {});
+
+  friend std::ostream &operator<<(std::ostream &out, Trace const &fig);
 
   PlotlyMsg::Trace::CreationMethods m_method;
   std::string m_method_func;
@@ -206,15 +196,11 @@ public:
 
   void set_uuid(const std::string &_uuid) { m_uuid = _uuid; }
 
-  void set_trace_kwargs(int idx, Plotly::Dictionary &value) {
-    if (idx >= size())
-      throw std::out_of_range("Given index exceed the number of traces.");
-    m_traces[idx].m_kwargs.set_kwargs(value);
-  }
+  void set_trace_kwargs(int idx, Plotly::Dictionary &value);
 
   void add_trace(Trace &trace) {
     // auto add trace if it's just one less than what we had
-    add_trace();
+    _add_trace();
     m_traces[size() - 1].m_kwargs.set_kwargs(trace.m_kwargs);
     m_traces[size() - 1].m_method = trace.m_method;
     m_traces[size() - 1].m_method_func = trace.m_method_func;
@@ -223,17 +209,10 @@ public:
   // r-value
   void add_trace(Trace &&trace) { add_trace(trace); }
 
-  void add_trace(Dictionary &value) {
-    // auto add trace if it's just one less than what we had
-    add_trace();
-    m_traces[size() - 1].m_kwargs.set_kwargs(value);
-  }
+  void add_trace(Dictionary &value);
 
   // r-value
-  void add_trace(Dictionary &&value) {
-    Dictionary new_dict(std::forward<Dictionary>(value));
-    add_trace(new_dict);
-  }
+  void add_trace(Dictionary &&value);
 
   template <typename T>
   void add_trace(const PlotlyMsg::Trace::CreationMethods method,
@@ -254,26 +233,15 @@ public:
     m_traces[idx].m_kwargs.add_kwargs(key, value);
   }
 
-  int add_trace() {
-    m_traces.emplace_back();
-    return size();
-  }
+  int _add_trace();
+
+  void add_command(const std::string &func, Dictionary &value);
+
+  void add_command(const std::string &func, Dictionary &&value);
 
   Dictionary &get_trace(int idx) { return m_traces[idx].m_kwargs; }
 
-  Trace &trace(int idx) {
-    if (idx < 0) {
-      // negative indexing, wraps around.
-      idx = size() + idx;
-      if (idx < 0)
-        throw std::out_of_range(
-            "Given negative index exceed the number of traces.");
-    }
-    if (idx >= size()) {
-      throw std::out_of_range("Given index exceed the number of traces.");
-    }
-    return m_traces[idx];
-  }
+  Trace &trace(int idx);
 
   int size() const { return m_traces.size(); }
 

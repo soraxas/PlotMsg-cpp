@@ -70,6 +70,10 @@ void Dictionary::reset() { m_msg = std::make_unique<DictionaryMsg>(); }
 
 DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
 
+std::ostream &operator<<(std::ostream &out, const Dictionary &dict) {
+  return out << (*dict.m_msg).data();
+}
+
 ////////////////////////////////////////
 // implementation of Plotly Figure
 ////////////////////////////////////////
@@ -81,8 +85,7 @@ void Figure::send(zmq::send_flags send_flags) {
   _fig->set_uuid(m_uuid);
 
   for (int i = 0; i < size(); ++i) {
-    _fig->add_traces();
-    auto trace = _fig->mutable_traces(i);
+    auto trace = _fig->add_traces();
     trace->mutable_kwargs()->Swap(m_traces[i].m_kwargs.release_ptr());
     trace->set_method(m_traces[i].m_method);
     trace->set_method_func(m_traces[i].m_method_func);
@@ -124,6 +127,53 @@ std::ostream &operator<<(std::ostream &out, const Figure &fig) {
   }
   out << ">";
   return out;
+}
+
+void Figure::set_trace_kwargs(int idx, Dictionary &value) {
+  if (idx >= size())
+    throw std::out_of_range("Given index exceed the number of traces.");
+  m_traces[idx].m_kwargs.set_kwargs(value);
+}
+
+void Figure::add_trace(Dictionary &value) {
+  // auto add trace if it's just one less than what we had
+  _add_trace();
+  m_traces[size() - 1].m_kwargs.set_kwargs(value);
+}
+void Figure::add_trace(Dictionary &&value) {
+  Dictionary new_dict(std::forward<Dictionary>(value));
+  add_trace(new_dict);
+}
+
+int Figure::_add_trace() {
+  m_traces.emplace_back();
+  return size();
+}
+
+Trace &Figure::trace(int idx) {
+  // return a reference to a trace
+  if (idx < 0) {
+    // negative indexing, wraps around.
+    idx = size() + idx;
+    if (idx < 0)
+      throw std::out_of_range(
+          "Given negative index exceed the number of traces.");
+  }
+  if (idx >= size()) {
+    throw std::out_of_range("Given index exceed the number of traces.");
+  }
+  return m_traces[idx];
+}
+
+void Figure::add_command(const std::string &func, Dictionary &value) {
+  auto cmd = m_msg.mutable_fig()->add_commands();
+  cmd->set_func(func);
+  cmd->mutable_kwargs()->Swap(value.release_ptr());
+}
+
+void Figure::add_command(const std::string &func, Dictionary &&value) {
+  Dictionary lvalue(value);
+  add_command(func, lvalue);
 }
 
 ////////////////////////////////////////
@@ -232,4 +282,19 @@ std::ostream &operator<<(std::ostream &out, const DictionaryMsgData &dict) {
 }
 
 //////////////////////////////////////////////////////////////////////////
+Trace::Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
+             Dictionary &kwargs)
+    : m_method(method), m_method_func(std::move(method_func)) {
+  m_kwargs.set_kwargs(kwargs);
+}
+Trace::Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
+             Dictionary &&kwargs)
+    : m_method(method), m_method_func(std::move(method_func)) {
+  m_kwargs.set_kwargs(std::forward<Dictionary>(kwargs));
+}
+std::ostream &operator<<(std::ostream &out, const Trace &fig) {
+  out << "trace<" << fig.m_method << "|" << fig.m_method_func << "|"
+      << fig.m_kwargs << ">";
+  return out;
+}
 }; // namespace Plotly

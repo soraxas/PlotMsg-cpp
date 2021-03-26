@@ -42,6 +42,13 @@ message Trace {
 message Figure {
   string uuid = 1;
   repeated Trace traces = 2;
+  repeated Command commands = 3;
+}
+
+message Command {
+  // arbitary commands to operates on the figure object
+  string func = 1;
+  Dictionary kwargs = 2;
 }
 
 message MessageContainer {
