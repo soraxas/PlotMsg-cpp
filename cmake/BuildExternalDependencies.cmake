@@ -75,5 +75,5 @@ FetchContent_Declare (
 )
 # ==================================================
 # fetch the actual content
-FetchContent_MakeAvailable(${EXT_LIBCPPZMQ} ${EXT_LIBZMQ} ${EXT_LIBPROTOBUF})
+FetchContent_MakeAvailable(${EXT_LIBZMQ} ${EXT_LIBCPPZMQ} ${EXT_LIBPROTOBUF})
 
