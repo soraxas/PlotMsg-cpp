@@ -225,7 +225,7 @@ public:
         Dictionary &&kwargs = {});
 
   IndexAcessProxy operator[](const std::string &key) const {
-    return m_kwargs["key"];
+    return m_kwargs[key];
   }
 
   friend std::ostream &operator<<(std::ostream &out, Trace const &fig);
