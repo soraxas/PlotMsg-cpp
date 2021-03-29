@@ -11,15 +11,37 @@ message SeriesI {
   repeated int32 data = 1 [packed = true];
 }
 
+message SeriesString {
+  repeated string data = 1;
+}
+
+message SeriesAny {
+  message value {
+    enum NullValue {
+      // Null value.
+      NULL_VALUE = 0;
+    }
+    oneof value {
+      NullValue null = 1;
+      int32     int = 2;
+      double    double = 3;
+      string    string = 4;
+    }
+  }
+  repeated value data = 1;
+}
+
 message DictItemVal {
   oneof value {
-    Dictionary dict = 1;
-    SeriesD    series_d = 2;
-    SeriesI    series_i = 3;
-    string     string = 4;
-    double     double = 5;
-    int32      int = 6;
-    bool       bool = 7;
+    Dictionary   dict = 1;
+    SeriesD      series_d = 2;
+    SeriesI      series_i = 3;
+    string       string = 4;
+    double       double = 5;
+    int32        int = 6;
+    bool         bool = 7;
+    SeriesString series_string = 8;
+    SeriesAny    series_any = 9;
   }
 }
 
