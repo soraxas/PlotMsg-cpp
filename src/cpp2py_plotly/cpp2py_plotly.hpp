@@ -82,6 +82,33 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
 
 ////////////////////////////////////////
 
+struct IndexAcessProxy {
+  /* This proxy is returned when accessing fig or trace. This proxy object
+   * will in-turn forward the assignment when user assign value to this proxy.
+   */
+  Plotly::DictionaryMsgData &ref_data;
+  std::string m_key;
+  IndexAcessProxy(Plotly::DictionaryMsgData &ref_data, std::string key)
+      : ref_data(ref_data), m_key(std::move(key)) {}
+
+  template <typename T> IndexAcessProxy operator=(T &other) {
+    Plotly::_set_DictItemVal(ref_data[m_key], std::forward<T>(other));
+    return *this;
+  }
+
+  // r-value
+  template <typename T> IndexAcessProxy operator=(T &&other) {
+    return operator=(other);
+  }
+
+  IndexAcessProxy operator[](const std::string &key) const {
+    return IndexAcessProxy(*ref_data[m_key].mutable_dict()->mutable_data(),
+                           key);
+  }
+};
+
+////////////////////////////////////////
+
 // class that represents dict representation in protobuf
 class Dictionary {
 
@@ -167,6 +194,12 @@ public:
 
   std::unique_ptr<Dictionary> deep_copy() const;
 
+  IndexAcessProxy operator[](const std::string &key) const {
+    return IndexAcessProxy(*m_msg->mutable_data(), key);
+  }
+
+  ///////////////////////////////////////////////////
+
   friend std::ostream &operator<<(std::ostream &out, Dictionary const &dict);
 
   void reset();
@@ -190,6 +223,10 @@ public:
 
   Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
         Dictionary &&kwargs = {});
+
+  IndexAcessProxy operator[](const std::string &key) const {
+    return m_kwargs["key"];
+  }
 
   friend std::ostream &operator<<(std::ostream &out, Trace const &fig);
 
