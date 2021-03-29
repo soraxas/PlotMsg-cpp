@@ -70,7 +70,6 @@ class Cpp2PyReciever:
     @staticmethod
     def unpack_msg(msg):
         """Recursive unpack method"""
-
         def unpack(inputs):
             inputs_t = type(inputs)
             if inputs_t is msg_pb2.Dictionary:
@@ -79,6 +78,17 @@ class Cpp2PyReciever:
                 return unpack(getattr(inputs, inputs.WhichOneof("value")))
             elif inputs_t in (msg_pb2.SeriesI, msg_pb2.SeriesD):
                 return np.array(inputs.data)
+            elif inputs_t is msg_pb2.SeriesString:
+                return list(inputs.data)
+            elif inputs_t is msg_pb2.SeriesAny:
+                out = []
+                for d in inputs.data:
+                    which = d.WhichOneof("value")
+                    if which == 'null':
+                        out.append(None)
+                    else:
+                        out.append(getattr(d, which))
+                return out
             elif inputs_t in (bool, str, float, int):
                 return inputs
             elif inputs_t == msg_pb2.Trace:
@@ -289,6 +299,7 @@ class Cpp2PyPlotly:
         def on_clear_figs(_):
             self.remove_figure_widget([uuid for uuid in self.figs])
             self.ctx_mgr_info_label.update_label("Cleared figs")
+            self._update_selection()
 
         w_clear_msgs.on_click(on_clear_msgs)
         w_clear_figs.on_click(on_clear_figs)
@@ -475,25 +486,26 @@ class Cpp2PyPlotly:
                 # different (with overhead of checking equality)
                 # if type is np array, we don't bother to check for equality
                 # nope. we will check shape and eq_val
-                if cur_attr is not None and new_attr is not None:
-                    # if any is None, type will obviously be different.
-                    if type(cur_attr) != type(new_attr):
-                        # NOT possible to update this.
-                        print(
-                            f"WARN: The attr {_attr} for a new incoming msg is "
-                            f"different than the existing one. "
-                            f"Was type {type(cur_attr)}, now {type(new_attr)}"
-                        )
-                        raise NotImplementedError("Should recreate the figure instead.")
+                if cur_attr is None or new_attr is None:
+                    # if any is None, type will obviously be different. Update this.
+                    pass
+                elif type(cur_attr) != type(new_attr):
+                    # NOT possible to update this.
+                    print(
+                        f"WARN: The attr {_attr} for a new incoming msg is "
+                        f"different than the existing one. "
+                        f"Was type {type(cur_attr)}, now {type(new_attr)}"
+                    )
+                    raise NotImplementedError("Should recreate the figure instead.")
                 elif isinstance(new_attr, np.ndarray):
                     if np.array_equal(cur_attr, new_attr):
                         continue
                 elif type(new_attr) is dict:
                     _update_attr(cur_attr, new_attr)
+                    continue
                 elif cur_attr == new_attr:
                     continue
-                else:
-                    existing[_attr] = new_attr
+                existing[_attr] = new_attr
 
         for stored_seq, new_widget_seq in zip(self.figs[uuid].data, widget.data):
             _update_attr(stored_seq, new_widget_seq)
