@@ -70,6 +70,7 @@ class Cpp2PyReciever:
     @staticmethod
     def unpack_msg(msg):
         """Recursive unpack method"""
+
         def unpack(inputs):
             inputs_t = type(inputs)
             if inputs_t is msg_pb2.Dictionary:
@@ -214,10 +215,10 @@ class Cpp2PyPlotly:
     #################################################
 
     def __init__(
-        self,
-        address: str = CPP2PY_ADDRESS,
-        mode: str = CPP2PY_MODE_WIDGET,
-        initialise: bool = True,
+            self,
+            address: str = CPP2PY_ADDRESS,
+            mode: str = CPP2PY_MODE_WIDGET,
+            initialise: bool = True,
     ):
         # the stored figs is a singleton
         if not hasattr(self.__class__, "stored_figs"):
@@ -428,18 +429,21 @@ class Cpp2PyPlotly:
     @ipywidget_mode(True)
     def _update_selection(self):
         # force refresh by unsetting and setting the selection
-        if self.w_multi_fig_sel is not None:
-            prev_sel = self.w_multi_fig_sel.value
-            self.w_multi_fig_sel.options = self.figs.keys()
-            # self.multi_figs_selections.value = []
-            if prev_sel:
-                self.w_multi_fig_sel.value = prev_sel
-        if self.w_single_fig_sel is not None:
-            prev_sel = self.w_single_fig_sel.value
-            self.w_single_fig_sel.options = self.figs.keys()
-            # self.single_fig_selections.value = None
-            if prev_sel:
-                self.w_single_fig_sel.value = prev_sel
+        for widget in (self.w_multi_fig_sel, self.w_single_fig_sel):
+            if widget is not None:
+                widget.options = self.figs.keys()
+                # store current selection, unset then set to force refresh
+                prev_sel = widget.value
+                if type(widget) is ipywidgets.widgets.widget_selection.SelectMultiple:
+                    widget.value = []
+                elif type(widget) is ipywidgets.widgets.widget_selection.Dropdown:
+                    widget.value = None
+                if prev_sel not in widget.options:
+                    prev_sel = None  # not exists anymore
+                    if len(widget.options) > 0:
+                        prev_sel = widget.options[0]  # default to first item
+                if prev_sel:
+                    widget.value = prev_sel
 
     @ipywidget_mode(True)
     def remove_figure_widget(self, uuids):
@@ -451,6 +455,7 @@ class Cpp2PyPlotly:
             try:
                 wid = self.figs[uuid]
                 wid.close()
+                del self.figs[uuid]
             except KeyError:
                 pass
         self._update_selection()
@@ -596,6 +601,5 @@ class Cpp2PyPlotly:
         ## Outer widget
         widget = ipywidgets.VBox(children=[self.w_single_fig_sel, inner_figs_container])
         display(widget)
-
 
 # TODO: work on re-selecting previous figure after updating/creating figure(s)
