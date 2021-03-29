@@ -193,6 +193,24 @@ PlotlyMsg::SeriesI *vec_to_allocated_seriesI(std::vector<int> value) {
   return series;
 }
 
+PlotlyMsg::SeriesString *
+vec_to_allocated_seriesString(std::vector<std::string> value) {
+  google::protobuf::RepeatedPtrField<std::string> data(value.begin(),
+                                                       value.end());
+  auto *series = new PlotlyMsg::SeriesString();
+  series->mutable_data()->Swap(&data);
+  return series;
+}
+
+PlotlyMsg::SeriesAny *
+vec_to_allocated_seriesAny(std::vector<PlotlyMsg::SeriesAny_value> value) {
+  google::protobuf::RepeatedPtrField<PlotlyMsg::SeriesAny_value> data(
+      value.begin(), value.end());
+  auto *series = new PlotlyMsg::SeriesAny();
+  series->mutable_data()->Swap(&data);
+  return series;
+}
+
 void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, bool value) {
   item_val.set_bool_(value);
 }
@@ -224,6 +242,16 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
 }
 
 void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      const std::vector<std::string> &value) {
+  item_val.set_allocated_series_string(vec_to_allocated_seriesString(value));
+}
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      const std::vector<PlotlyMsg::SeriesAny_value> &value) {
+  item_val.set_allocated_series_any(vec_to_allocated_seriesAny(value));
+}
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
                       Plotly::Dictionary &value) {
   item_val.set_allocated_dict(value.release_ptr());
 }
@@ -235,7 +263,6 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
 }
 
 std::ostream &operator<<(std::ostream &out, const DictionaryMsgData &dict) {
-  return out;
   out << "Dict(";
   bool first_item = true;
   for (auto &&it = dict.begin(); it != dict.end(); ++it) {
@@ -253,6 +280,12 @@ std::ostream &operator<<(std::ostream &out, const DictionaryMsgData &dict) {
       break;
     case PlotlyMsg::DictItemVal::kSeriesI:
       out << "seriesI<..>";
+      break;
+    case PlotlyMsg::DictItemVal::kSeriesString:
+      out << "seriesString<..>";
+      break;
+    case PlotlyMsg::DictItemVal::kSeriesAny:
+      out << "seriesAny<..>";
       break;
     case PlotlyMsg::DictItemVal::kBool:
       out << itemVal.bool_();

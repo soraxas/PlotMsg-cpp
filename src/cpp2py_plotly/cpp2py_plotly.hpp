@@ -44,6 +44,12 @@ PlotlyMsg::SeriesD *vec_to_allocated_seriesD(std::vector<double> value);
 
 PlotlyMsg::SeriesI *vec_to_allocated_seriesI(std::vector<int> value);
 
+PlotlyMsg::SeriesString *
+vec_to_allocated_seriesString(std::vector<std::string> value);
+
+PlotlyMsg::SeriesAny *
+vec_to_allocated_seriesAny(std::vector<PlotlyMsg::SeriesAny_value> value);
+
 // helper function to assign given PlotlyMsg::DictItemVal with T value
 void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, bool value);
 
@@ -60,6 +66,12 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
 
 void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
                       const std::vector<int> &value);
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      const std::vector<std::string> &value);
+
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+                      const std::vector<PlotlyMsg::SeriesAny_value> &value);
 
 void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
                       Plotly::Dictionary &value);
@@ -265,5 +277,65 @@ private:
   PlotlyMsg::MessageContainer m_msg;
   std::string m_uuid;
 };
+
+////////////////////////////////////////
+// Series Any (vector of {int,double,string,null})
+////////////////////////////////////////
+
+enum NullValueType { value };
+NullValueType NullValue = NullValueType::value;
+
+std::vector<PlotlyMsg::SeriesAny_value> seriesAny_vector_create() {
+  return std::vector<PlotlyMsg::SeriesAny_value>();
+}
+
+void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+                                NullValueType null) {
+  // set null value
+  vec.emplace_back();
+  vec.back().set_null(PlotlyMsg::SeriesAny_value_NullValue_NULL_VALUE);
+}
+
+void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+                                const std::string &val) {
+  vec.emplace_back();
+  vec.back().set_string(val);
+}
+
+void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+                                double val) {
+  vec.emplace_back();
+  vec.back().set_double_(val);
+}
+
+void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+                                int val) {
+  vec.emplace_back();
+  vec.back().set_int_(val);
+}
+
+//////////
+template <typename T, typename... Ts>
+void seriesAny_vector(std::vector<PlotlyMsg::SeriesAny_value> &vec, T first,
+                      Ts... args) {
+  // intermediate worker
+  seriesAny_vector_push_back(vec, first);
+  seriesAny_vector(vec, args...);
+}
+
+template <typename T>
+void seriesAny_vector(std::vector<PlotlyMsg::SeriesAny_value> &vec, T first) {
+  // last worker
+  seriesAny_vector_push_back(vec, first);
+}
+
+template <typename... Ts>
+std::vector<PlotlyMsg::SeriesAny_value> seriesAny_vector(Ts... args) {
+  // entrypoint
+  std::vector<PlotlyMsg::SeriesAny_value> vec = seriesAny_vector_create();
+  seriesAny_vector(vec, args...);
+  return vec;
+}
+//////////
 
 } // namespace Plotly
