@@ -10,7 +10,7 @@ namespace Plotly {
 namespace TraceTemplate {
 using ditem = Plotly::Dictionary::DictionaryItemPair;
 
-Plotly::Trace Scatter() {
+Plotly::Trace scatter() {
   return Plotly::Trace( //
       PlotlyMsg::Trace::graph_objects, "Scatter",
       Plotly::Dictionary(                     //
@@ -24,18 +24,18 @@ Plotly::Trace Scatter() {
 }
 
 template <typename T1, typename T2>
-Plotly::Trace Scatter(std::vector<T1> &x, std::vector<T2> &y) {
-  Plotly::Trace trace = Scatter();
-  trace.m_kwargs.add_kwargs("x", x);
-  trace.m_kwargs.add_kwargs("y", y);
+Plotly::Trace scatter(std::vector<T1> &x, std::vector<T2> &y) {
+  Plotly::Trace trace = scatter();
+  trace["x"] = x;
+  trace["y"] = y;
   return trace;
 }
 
 template <typename T1, typename T2>
-Plotly::Trace ScatterWithColour(std::vector<T1> &x, std::vector<T1> &y,
+Plotly::Trace scatterWithColour(std::vector<T1> &x, std::vector<T1> &y,
                                 std::vector<T2> &c) {
-  Plotly::Trace trace = Scatter(x, y);
-  trace.m_kwargs.add_kwargs("color", c);
+  Plotly::Trace trace = scatter(x, y);
+  trace["color"] = c;
   return trace;
 }
 
@@ -96,7 +96,7 @@ Plotly::Trace edges(std::vector<std::pair<T, T>> &x,
 }
 
 template <typename T>
-Plotly::Trace nodes(std::vector<T> &x, std::vector<T> &y) {
+Plotly::Trace vertices(std::vector<T> &x, std::vector<T> &y) {
   return Plotly::Trace(PlotlyMsg::Trace::graph_objects, "Scatter",
                        Plotly::Dictionary(                              //
                            "x", x,                                      //
@@ -108,12 +108,20 @@ Plotly::Trace nodes(std::vector<T> &x, std::vector<T> &y) {
                            "marker_reversescale", true,                 //
                            "marker_color", std::vector<int>(),          // why?
                            "marker_size", 10,                           //
-                           "marker_colorbar_thickness", 15,             //
-                           "marker_colorbar_title", "Node Connections", //
-                           "marker_colorbar_xanchor", "left",           //
-                           "marker_colorbar_titleside", "right",        //
                            "marker_line_width", 2                       //
                            ));
+}
+
+template <typename T1, typename T2>
+Plotly::Trace vertices(std::vector<T1> &x, std::vector<T1> &y,
+                       std::vector<T2> &c) {
+  auto trace = vertices(x, y);
+  trace["marker_color"] = c;
+  trace["marker"]["colorbar"]["thickness"] = 15;
+  trace["marker"]["colorbar"]["title"] = "Node Connections";
+  trace["marker"]["colorbar"]["xanchor"] = "left";
+  trace["marker"]["colorbar"]["titleside"] = "right";
+  return trace;
 }
 
 } // namespace TraceTemplate

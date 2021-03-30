@@ -241,7 +241,9 @@ public:
 
 class Figure {
 public:
-  explicit Figure(const std::string &uuid = "default") { reset(); }
+  explicit Figure(std::string uuid = "default") : m_uuid(std::move(uuid)) {
+    reset();
+  }
 
   void set_uuid(const std::string &_uuid) { m_uuid = _uuid; }
 
