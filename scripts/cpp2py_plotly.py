@@ -56,6 +56,13 @@ class DummyCtxMgr:
         pass
 
 
+class DummyClass:
+    dummy_func = lambda *args, **kwargs: None
+
+    def __getattr__(self, attr):
+        return self.dummy_func
+
+
 class Cpp2PyReciever:
     """A class that listen to message from cpp"""
 
@@ -244,6 +251,7 @@ class Cpp2PyPlotly:
         elif mode == CPP2PY_MODE_DEFAULT:
             self.reciever = Cpp2PyReciever(address=address)
             self.ctx_mgr_chained = DummyCtxMgr
+            self.ctx_mgr_pbar = DummyClass()
             self.goFigClass = go.Figure
         else:
             raise RuntimeError("Unrecognised mode {}".format(mode))
