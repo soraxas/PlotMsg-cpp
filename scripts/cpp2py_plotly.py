@@ -226,6 +226,7 @@ class Cpp2PyPlotly:
             address: str = CPP2PY_ADDRESS,
             mode: str = CPP2PY_MODE_WIDGET,
             initialise: bool = True,
+            figure_type=None,
     ):
         # the stored figs is a singleton
         if not hasattr(self.__class__, "stored_figs"):
@@ -254,8 +255,15 @@ class Cpp2PyPlotly:
             self.ctx_mgr_pbar = DummyClass()
             self.goFigClass = go.Figure
         else:
-            raise RuntimeError("Unrecognised mode {}".format(mode))
+            raise RuntimeError("Unrecognised mode '{}'".format(mode))
         self.mode = mode
+        if figure_type is not None:
+            if figure_type == 'Figure':
+                self.goFigClass = go.Figure
+            elif figure_type == 'FigureWidget':
+                self.goFigClass = go.FigureWidget
+            else:
+                raise RuntimeError("Unrecognised figure_type '{}'".format(figure_type))
         # reciever for msg from cpp side
         self.async_task = None
         if initialise:
@@ -285,6 +293,49 @@ class Cpp2PyPlotly:
         self.ctx_mgr_captured_log = ipywidgets.widgets.Output(
             layout={"border": "1px solid black"}
         )
+        #######################
+        self.w_resize_auto_toggle = ipywidgets.Checkbox(
+            value=True,
+            description='Auto-resize',
+            tooltip='auto resize figures to fit screen',
+            icon='arrows-alt-h',
+            indent=False,
+            layout=dict(margin='0px 0px 0px 20px')
+        )
+        self.w_resize_width = ipywidgets.IntText(
+            value=600, step=10, description='width:', layout=dict(width='120pt'),
+        )
+        self.w_resize_height = ipywidgets.IntText(
+            value=600, step=10, description='height:', layout=dict(width='120pt'),
+        )
+
+        def resize_figure(figure):
+            figure.update_layout(autosize=False,
+                                 width=self.w_resize_width.value,
+                                 height=self.w_resize_height.value)
+
+        def chkbox_on_change(event):
+            self.w_resize_width.disabled = event['new']
+            self.w_resize_height.disabled = event['new']
+            if self.w_single_fig_sel.value is None:
+                return
+            active_fig = self.figs[self.w_single_fig_sel.value]
+            # allow controlling of the figure size
+            if event['new']:
+                active_fig.update_layout(autosize=True, width=None, height=None)
+            else:
+                resize_figure(active_fig)
+
+        def resize_input_box_on_change(event):
+            if self.w_single_fig_sel.value is None:
+                return
+            active_fig = self.figs[self.w_single_fig_sel.value]
+            resize_figure(active_fig)
+
+        self.w_resize_auto_toggle.observe(chkbox_on_change, 'value')
+        self.w_resize_width.observe(resize_input_box_on_change, 'value')
+        self.w_resize_height.observe(resize_input_box_on_change, 'value')
+        #######################
         self.ctx_mgr_info_label = self.__class__.InfoLabelCtxMgr(self)
         self.ctx_mgr_info_label.update_label("Initialised")
         self.ctx_mgr_pbar = self.__class__.ProgressBarCtxMgr()
@@ -312,19 +363,28 @@ class Cpp2PyPlotly:
 
         w_clear_msgs.on_click(on_clear_msgs)
         w_clear_figs.on_click(on_clear_figs)
-        self.w_info_containers = ipywidgets.VBox(
+        self.w_info_containers = ipywidgets.Tab(
             children=[
-                ipywidgets.HBox(
+                ipywidgets.VBox(
                     children=[
-                        self.w_refresh_btn,
-                        w_clear_msgs,
-                        w_clear_figs,
-                        self.ctx_mgr_pbar.w_progress_bar,
+                        ipywidgets.HBox(
+                            children=[
+                                self.w_refresh_btn,
+                                w_clear_msgs,
+                                w_clear_figs,
+                                self.w_resize_width,
+                                self.w_resize_height,
+                                self.w_resize_auto_toggle,
+                                self.ctx_mgr_pbar.w_progress_bar,
+                            ]
+                        ),
+                        self.ctx_mgr_info_label.label,
                     ]
                 ),
-                self.ctx_mgr_info_label.label,
-            ]
-        )
+                self.ctx_mgr_captured_log
+            ])
+        self.w_info_containers.set_title(0, "Controls")
+        self.w_info_containers.set_title(1, "Logs")
         ##
         from contextlib import contextmanager
 
@@ -414,7 +474,7 @@ class Cpp2PyPlotly:
                 self.parse_msg_to_plotly_fig(process_msg_func())
 
     @ipywidget_mode(True)
-    def spin_async(self, display_log=True):
+    def spin_async(self, display_log=False):
         if self.mode == CPP2PY_MODE_DEFAULT:
             return
         # default display log
@@ -462,7 +522,8 @@ class Cpp2PyPlotly:
         for uuid in uuids:
             try:
                 wid = self.figs[uuid]
-                wid.close()
+                if type(wid) is go.FigureWidget:
+                    wid.close()
                 del self.figs[uuid]
             except KeyError:
                 pass
