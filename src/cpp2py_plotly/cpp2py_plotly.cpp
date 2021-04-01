@@ -2,6 +2,16 @@
 
 namespace Plotly {
 
+void initialise_publisher(int sleep_after_bind, const std::string &addr) {
+  if (static_publisher != nullptr)
+    return;
+  static_context = std::make_unique<zmq::context_t>();
+  static_publisher = std::make_unique<zmq::socket_t>(*static_context, ZMQ_PUB);
+  static_publisher->bind(addr);
+  if (sleep_after_bind > 0)
+    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_after_bind));
+}
+
 ////////////////////////////////////////
 // implementation of Dictionary
 ////////////////////////////////////////
@@ -70,7 +80,7 @@ void Dictionary::reset() { m_msg = std::make_unique<DictionaryMsg>(); }
 
 DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
 
-std::ostream &operator<<(std::ostream &out, const Dictionary &dict) {
+std::ostream &operator<<(std::ostream &out, Dictionary const &dict) {
   return out << (*dict.m_msg).data();
 }
 
@@ -97,7 +107,7 @@ void Figure::send(zmq::send_flags send_flags) {
   memcpy((void *)zmq_msg.data(), encoded_msg.c_str(), encoded_msg.size());
   static_publisher->send(zmq_msg, send_flags);
 
-  m_traces.clear();
+  reset();
 }
 
 void Figure::reset() {
@@ -120,7 +130,7 @@ zmq::message_t Figure::build_zmq_msg() {
   memcpy((void *)zmq_msg.data(), encoded_msg.c_str(), encoded_msg.size());
   return zmq_msg;
 }
-std::ostream &operator<<(std::ostream &out, const Figure &fig) {
+std::ostream &operator<<(std::ostream &out, Figure const &fig) {
   out << "Figure<" << fig.m_uuid << "|";
   for (auto &&trace : fig.m_traces) {
     out << trace;
@@ -135,6 +145,7 @@ void Figure::set_trace_kwargs(int idx, Dictionary &value) {
   m_traces[idx].m_kwargs.set_kwargs(value);
 }
 
+/*
 void Figure::add_trace(Dictionary &value) {
   // auto add trace if it's just one less than what we had
   _add_trace();
@@ -144,6 +155,7 @@ void Figure::add_trace(Dictionary &&value) {
   Dictionary new_dict(std::forward<Dictionary>(value));
   add_trace(new_dict);
 }
+*/
 
 int Figure::_add_trace() {
   m_traces.emplace_back();
@@ -223,14 +235,6 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, int value) {
   item_val.set_int_(value);
 }
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, const char *value) {
-  item_val.set_string(value);
-}
-
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, std::string &value) {
-  item_val.set_string(std::move(value));
-}
-
 void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
                       const std::vector<double> &value) {
   item_val.set_allocated_series_d(vec_to_allocated_seriesD(value));
@@ -262,7 +266,7 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
   _set_DictItemVal(item_val, value);
 }
 
-std::ostream &operator<<(std::ostream &out, const DictionaryMsgData &dict) {
+std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict) {
   out << "Dict(";
   bool first_item = true;
   for (auto &&it = dict.begin(); it != dict.end(); ++it) {
@@ -325,9 +329,33 @@ Trace::Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
     : m_method(method), m_method_func(std::move(method_func)) {
   m_kwargs.set_kwargs(std::forward<Dictionary>(kwargs));
 }
-std::ostream &operator<<(std::ostream &out, const Trace &fig) {
+
+std::ostream &operator<<(std::ostream &out, Trace const &fig) {
   out << "trace<" << fig.m_method << "|" << fig.m_method_func << "|"
       << fig.m_kwargs << ">";
   return out;
 }
+
+void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+                                NullValueType null) {
+  // set null value
+  vec.emplace_back();
+  vec.back().set_null(PlotlyMsg::SeriesAny_value_NullValue_NULL_VALUE);
+}
+void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+                                const std::string &val) {
+  vec.emplace_back();
+  vec.back().set_string(val);
+}
+void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+                                double val) {
+  vec.emplace_back();
+  vec.back().set_double_(val);
+}
+void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+                                int val) {
+  vec.emplace_back();
+  vec.back().set_int_(val);
+}
+
 }; // namespace Plotly

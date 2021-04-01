@@ -9,6 +9,8 @@
 #include <utility>
 #include <zmq.hpp>
 
+#define CPP2PY_PLOTLY_DEFAULT_ADDR "tcp://127.0.0.1:5557"
+
 namespace Plotly {
 // define the static storage
 std::unique_ptr<zmq::context_t> static_context;
@@ -16,15 +18,7 @@ std::unique_ptr<zmq::socket_t> static_publisher;
 
 // static functions
 void initialise_publisher(int sleep_after_bind = 1000,
-                          const std::string &addr = "tcp://127.0.0.1:5557") {
-  if (static_publisher != nullptr)
-    return;
-  static_context = std::make_unique<zmq::context_t>();
-  static_publisher = std::make_unique<zmq::socket_t>(*static_context, ZMQ_PUB);
-  static_publisher->bind(addr);
-  if (sleep_after_bind > 0)
-    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_after_bind));
-}
+                          const std::string &addr = CPP2PY_PLOTLY_DEFAULT_ADDR);
 
 // easy alias
 using DictionaryMsg = PlotlyMsg::Dictionary;
@@ -57,9 +51,11 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, double value);
 
 void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, int value);
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, const char *value);
-
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, std::string &value);
+template <typename T>
+void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, T value) {
+  // this works for l/r-value std::string, and const char.
+  item_val.set_string(std::forward<T>(value));
+}
 
 void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
                       const std::vector<double> &value);
@@ -82,28 +78,28 @@ void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
 
 ////////////////////////////////////////
 
-struct IndexAcessProxy {
+struct IndexAccessProxy {
   /* This proxy is returned when accessing fig or trace. This proxy object
    * will in-turn forward the assignment when user assign value to this proxy.
    */
   Plotly::DictionaryMsgData &ref_data;
   std::string m_key;
-  IndexAcessProxy(Plotly::DictionaryMsgData &ref_data, std::string key)
+  IndexAccessProxy(Plotly::DictionaryMsgData &ref_data, std::string key)
       : ref_data(ref_data), m_key(std::move(key)) {}
 
-  template <typename T> IndexAcessProxy operator=(T &other) {
+  template <typename T> IndexAccessProxy &operator=(T &other) {
     Plotly::_set_DictItemVal(ref_data[m_key], std::forward<T>(other));
     return *this;
   }
 
   // r-value
-  template <typename T> IndexAcessProxy operator=(T &&other) {
+  template <typename T> IndexAccessProxy &operator=(T &&other) {
     return operator=(other);
   }
 
-  IndexAcessProxy operator[](const std::string &key) const {
-    return IndexAcessProxy(*ref_data[m_key].mutable_dict()->mutable_data(),
-                           key);
+  IndexAccessProxy operator[](const std::string &key) const {
+    return IndexAccessProxy(*ref_data[m_key].mutable_dict()->mutable_data(),
+                            key);
   }
 };
 
@@ -111,9 +107,8 @@ struct IndexAcessProxy {
 
 // class that represents dict representation in protobuf
 class Dictionary {
-
 public:
-  class DictionaryItemPair {
+  struct DictionaryItemPair {
   public:
     template <typename T> DictionaryItemPair(const std::string &key, T value) {
       m_key = key;
@@ -194,8 +189,8 @@ public:
 
   std::unique_ptr<Dictionary> deep_copy() const;
 
-  IndexAcessProxy operator[](const std::string &key) const {
-    return IndexAcessProxy(*m_msg->mutable_data(), key);
+  IndexAccessProxy operator[](const std::string &key) const {
+    return IndexAccessProxy(*m_msg->mutable_data(), key);
   }
 
   ///////////////////////////////////////////////////
@@ -224,7 +219,7 @@ public:
   Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
         Dictionary &&kwargs = {});
 
-  IndexAcessProxy operator[](const std::string &key) const {
+  IndexAccessProxy operator[](const std::string &key) const {
     return m_kwargs[key];
   }
 
@@ -260,18 +255,17 @@ public:
   // r-value
   void add_trace(Trace &&trace) { add_trace(trace); }
 
+  // perfect forward all arguments to create trace
+  template <typename... Ts> void add_trace(Ts... args) {
+    add_trace(Plotly::Trace(std::forward<Ts>(args)...));
+  }
+
+  /*
   void add_trace(Dictionary &value);
 
   // r-value
   void add_trace(Dictionary &&value);
-
-  template <typename T>
-  void add_trace(const PlotlyMsg::Trace::CreationMethods method,
-                 const std::string &method_func, T value) {
-    add_trace(std::forward<T>(value));
-    m_traces[size() - 1].m_method = method;
-    m_traces[size() - 1].m_method_func = method_func;
-  }
+   */
 
   template <typename T>
   void add_kwargs_to_trace(const std::string &key, T value) {
@@ -329,29 +323,16 @@ std::vector<PlotlyMsg::SeriesAny_value> seriesAny_vector_create() {
 }
 
 void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
-                                NullValueType null) {
-  // set null value
-  vec.emplace_back();
-  vec.back().set_null(PlotlyMsg::SeriesAny_value_NullValue_NULL_VALUE);
-}
+                                NullValueType null);
 
 void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
-                                const std::string &val) {
-  vec.emplace_back();
-  vec.back().set_string(val);
-}
+                                const std::string &val);
 
 void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
-                                double val) {
-  vec.emplace_back();
-  vec.back().set_double_(val);
-}
+                                double val);
 
 void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
-                                int val) {
-  vec.emplace_back();
-  vec.back().set_int_(val);
-}
+                                int val);
 
 //////////
 template <typename T, typename... Ts>
