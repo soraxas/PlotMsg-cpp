@@ -13,8 +13,8 @@
 
 namespace Plotly {
 // define the static storage
-std::unique_ptr<zmq::context_t> static_context;
-std::unique_ptr<zmq::socket_t> static_publisher;
+inline std::unique_ptr<zmq::context_t> static_context;
+inline std::unique_ptr<zmq::socket_t> static_publisher;
 
 // static functions
 void initialise_publisher(int sleep_after_bind = 1000,
