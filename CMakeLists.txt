@@ -17,8 +17,9 @@ set(INSTALL_CMAKE_DIR ${CMAKE_INSTALL_PREFIX}/lib/cmake/cpp2py_plotly)
 # +-----------------------------------------------------------------------------
 # | Build configuration options
 # +-----------------------------------------------------------------------------
-#option( BUILD_CTAGS "Build ctag file?" FALSE )
-#option( BUILD_APPLICATIONS "Build applications?" FALSE )
+option( BUILD_CTAGS "Build ctag file?" FALSE )
+option( RUN_TESTS "Run Tests?" FALSE )
+
 
 # +-----------------------------------------------------------------------------
 # | Library search and setup
@@ -27,16 +28,15 @@ set(INSTALL_CMAKE_DIR ${CMAKE_INSTALL_PREFIX}/lib/cmake/cpp2py_plotly)
 # Build shared libraries by default
 set(BUILD_SHARED_LIBS True)
 
-find_package(ZMQ)
-find_package(Protobuf)
+find_package(cppzmq QUIET)
+find_package(Protobuf REQUIRED)
 
 # Use local include and library directories
 include_directories(
-        ${ZMQ_INCLUDE_DIRS}
-        ${Protobuf_INCLUDE_DIR}
         ${PROJECT_SOURCE_DIR}
 )
 link_directories(${BASE_DIR}/lib)
+
 
 # +-----------------------------------------------------------------------------
 # | Custom targets and macros
@@ -68,8 +68,7 @@ endif ()
 # | Compile code
 # +-----------------------------------------------------------------------------
 
-add_subdirectory(src/protobuf_msg)
-add_subdirectory(src/cpp2py_plotly)
+add_subdirectory(src)
 
 # python scripts
 configure_file(
@@ -81,8 +80,18 @@ configure_file(
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     # only build demo if this is the root project
     add_executable(pub "publisher_example.cpp")
-    target_link_libraries(pub cpp2py_plotly)
+    target_link_libraries(pub cpp2py_plotly ${link_eigen})
+
+    find_package(Eigen3)
+    if (TARGET Eigen3::Eigen)
+        # Use the imported target
+        set(link_eigen Eigen3::Eigen)
+        add_definitions(-DWITH_EIGEN)
+
+        target_include_directories(pub PRIVATE ${EIGEN3_INCLUDE_DIR})
+    endif (TARGET Eigen3::Eigen)
 endif ()
+
 
 # +-----------------------------------------------------------------------------
 # | Installation setup
@@ -104,10 +113,6 @@ configure_file(
 )
 
 # Create the ${PROJECT_NAME}Config.cmake file for the install tree.
-# CONF_INCLUDE_DIRS is a variable that the generated
-# ${PROJECT_NAME}Config.cmake file uses by performing variable substitution on.
-# This is the reason that ${*_CMAKE_DIR} is used even though it is not defined
-# here.
 set(CONF_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include)
 configure_file(
         ${PROJECT_NAME}Config.cmake.in
@@ -127,38 +132,3 @@ install(
         DESTINATION "${INSTALL_CMAKE_DIR}"
         COMPONENT dev
 )
-
-
-#function(combine_archives output_archive list_of_input_archives)
-#    set(mri_file ${TEMP_DIR}/${output_archive}.mri)
-#    set(FULL_OUTPUT_PATH ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${output_archive}.a)
-#    file(WRITE ${mri_file} "create ${FULL_OUTPUT_PATH}\n")
-#    FOREACH (in_archive ${list_of_input_archives})
-#        file(APPEND ${mri_file} "addlib ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${in_archive}.a\n")
-#    ENDFOREACH ()
-#    file(APPEND ${mri_file} "save\n")
-#    file(APPEND ${mri_file} "end\n")
-#
-#    set(output_archive_dummy_file ${TEMP_DIR}/${output_archive}.dummy.cpp)
-#    add_custom_command(OUTPUT ${output_archive_dummy_file}
-#            COMMAND touch ${output_archive_dummy_file}
-#            DEPENDS ${list_of_input_archives})
-#
-#    add_library(${output_archive} STATIC ${output_archive_dummy_file})
-##    add_custom_command(TARGET ${output_archive}
-##            POST_BUILD
-##            COMMAND ar -M < ${mri_file})
-#endfunction(combine_archives)
-#
-#set(TEMP_DIR /tmp)
-#set(target_combine_lib
-#        cpp2py_plotly
-#        proto_plotly_cpp
-#        ${Protobuf_LIBRARIES}
-##        zmq
-#        ${ZMQ_LIBRARIES}
-#        )
-#
-#combine_archives(cpp2py_plotly_Combined
-#        "${target_combine_lib}"
-#        )
