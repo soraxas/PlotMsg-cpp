@@ -92,7 +92,7 @@ class Cpp2PyReciever:
                 out = []
                 for d in inputs.data:
                     which = d.WhichOneof("value")
-                    if which == 'null':
+                    if which == "null":
                         out.append(None)
                     else:
                         out.append(getattr(d, which))
@@ -222,11 +222,11 @@ class Cpp2PyPlotly:
     #################################################
 
     def __init__(
-            self,
-            address: str = CPP2PY_ADDRESS,
-            mode: str = CPP2PY_MODE_WIDGET,
-            initialise: bool = True,
-            figure_type=None,
+        self,
+        address: str = CPP2PY_ADDRESS,
+        mode: str = CPP2PY_MODE_WIDGET,
+        initialise: bool = True,
+        figure_type=None,
     ):
         # the stored figs is a singleton
         if not hasattr(self.__class__, "stored_figs"):
@@ -258,9 +258,9 @@ class Cpp2PyPlotly:
             raise RuntimeError("Unrecognised mode '{}'".format(mode))
         self.mode = mode
         if figure_type is not None:
-            if figure_type == 'Figure':
+            if figure_type == "Figure":
                 self.goFigClass = go.Figure
-            elif figure_type == 'FigureWidget':
+            elif figure_type == "FigureWidget":
                 self.goFigClass = go.FigureWidget
             else:
                 raise RuntimeError("Unrecognised figure_type '{}'".format(figure_type))
@@ -296,32 +296,40 @@ class Cpp2PyPlotly:
         #######################
         self.w_resize_auto_toggle = ipywidgets.Checkbox(
             value=True,
-            description='Auto-resize',
-            tooltip='auto resize figures to fit screen',
-            icon='arrows-alt-h',
+            description="Auto-resize",
+            tooltip="auto resize figures to fit screen",
+            icon="arrows-alt-h",
             indent=False,
-            layout=dict(margin='0px 0px 0px 20px')
+            layout=dict(margin="0px 0px 0px 20px"),
         )
         self.w_resize_width = ipywidgets.IntText(
-            value=600, step=10, description='width:', layout=dict(width='120pt'),
+            value=600,
+            step=10,
+            description="width:",
+            layout=dict(width="120pt"),
         )
         self.w_resize_height = ipywidgets.IntText(
-            value=600, step=10, description='height:', layout=dict(width='120pt'),
+            value=600,
+            step=10,
+            description="height:",
+            layout=dict(width="120pt"),
         )
 
         def resize_figure(figure):
-            figure.update_layout(autosize=False,
-                                 width=self.w_resize_width.value,
-                                 height=self.w_resize_height.value)
+            figure.update_layout(
+                autosize=False,
+                width=self.w_resize_width.value,
+                height=self.w_resize_height.value,
+            )
 
         def chkbox_on_change(event):
-            self.w_resize_width.disabled = event['new']
-            self.w_resize_height.disabled = event['new']
+            self.w_resize_width.disabled = event["new"]
+            self.w_resize_height.disabled = event["new"]
             if self.w_single_fig_sel.value is None:
                 return
             active_fig = self.figs[self.w_single_fig_sel.value]
             # allow controlling of the figure size
-            if event['new']:
+            if event["new"]:
                 active_fig.update_layout(autosize=True, width=None, height=None)
             else:
                 resize_figure(active_fig)
@@ -332,9 +340,9 @@ class Cpp2PyPlotly:
             active_fig = self.figs[self.w_single_fig_sel.value]
             resize_figure(active_fig)
 
-        self.w_resize_auto_toggle.observe(chkbox_on_change, 'value')
-        self.w_resize_width.observe(resize_input_box_on_change, 'value')
-        self.w_resize_height.observe(resize_input_box_on_change, 'value')
+        self.w_resize_auto_toggle.observe(chkbox_on_change, "value")
+        self.w_resize_width.observe(resize_input_box_on_change, "value")
+        self.w_resize_height.observe(resize_input_box_on_change, "value")
         #######################
         self.ctx_mgr_info_label = self.__class__.InfoLabelCtxMgr(self)
         self.ctx_mgr_info_label.update_label("Initialised")
@@ -381,8 +389,9 @@ class Cpp2PyPlotly:
                         self.ctx_mgr_info_label.label,
                     ]
                 ),
-                self.ctx_mgr_captured_log
-            ])
+                self.ctx_mgr_captured_log,
+            ]
+        )
         self.w_info_containers.set_title(0, "Controls")
         self.w_info_containers.set_title(1, "Logs")
         ##
@@ -428,7 +437,7 @@ class Cpp2PyPlotly:
             if method == "graph_objects":
                 import plotly.graph_objects
 
-                func = func.title()
+                # func = func.title()  # this should be specified by the library itself
                 traces.append(getattr(plotly.graph_objects, func)(**t["kwargs"]))
             elif method == "plotly_express":
                 import plotly.express
@@ -670,5 +679,6 @@ class Cpp2PyPlotly:
         ## Outer widget
         widget = ipywidgets.VBox(children=[self.w_single_fig_sel, inner_figs_container])
         display(widget)
+
 
 # TODO: work on re-selecting previous figure after updating/creating figure(s)
