@@ -13,6 +13,15 @@ from IPython.display import display
 
 from . import msg_pb2
 
+try:
+    if msg_pb2.IS_CPP2PY_PROTOBUF_MSG_PLACE_HOLDER:
+        raise RuntimeError(
+            f"The file '{msg_pb2.__file__}' appears to be a placeholder file. "
+            "Have you compiled this module correctly and installed the corresponding python package?"
+        )
+except AttributeError:
+    pass
+
 CPP2PY_ADDRESS = "tcp://127.0.0.1:5557"
 CPP2PY_MODE_DEFAULT = "default"
 CPP2PY_MODE_ASYNC = "async"

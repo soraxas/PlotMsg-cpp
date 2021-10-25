@@ -223,6 +223,28 @@ public:
     return m_kwargs[key];
   }
 
+  // assignment
+  Trace &operator=(const Trace &&trace) noexcept {
+    m_kwargs.set_kwargs(Dictionary(trace.m_kwargs));
+    m_method = trace.m_method;
+    m_method_func = trace.m_method_func;
+    return *this;
+  }
+
+  // copy-construct
+  Trace(const Trace &trace) {
+    m_kwargs.set_kwargs(Dictionary(trace.m_kwargs));
+    m_method = trace.m_method;
+    m_method_func = trace.m_method_func;
+  }
+
+  // rvalue-construct
+  Trace(Trace &&trace) noexcept {
+    m_kwargs.set_kwargs(trace.m_kwargs);
+    m_method = trace.m_method;
+    m_method_func = trace.m_method_func;
+  }
+
   friend std::ostream &operator<<(std::ostream &out, Trace const &fig);
 
   PlotlyMsg::Trace::CreationMethods m_method;
@@ -245,7 +267,6 @@ public:
   void set_trace_kwargs(int idx, Plotly::Dictionary &value);
 
   void add_trace(Trace &trace) {
-    // auto add trace if it's just one less than what we had
     _add_trace();
     m_traces[size() - 1].m_kwargs.set_kwargs(trace.m_kwargs);
     m_traces[size() - 1].m_method = trace.m_method;
@@ -267,6 +288,20 @@ public:
   void add_trace(Dictionary &&value);
    */
 
+  void remove_trace(uint index) {
+    assert(index >= 0 && index < size());
+    // naive way to erase, as the following creates segment fault
+    //    m_traces.erase(m_traces.begin() + index);
+    std::vector<Trace> tmp_traces;
+    std::swap(tmp_traces, m_traces);
+    m_traces.reserve(tmp_traces.size() - 1);
+    for (uint i = 0; i < tmp_traces.size(); ++i) {
+      if (i == index)
+        continue;
+      m_traces.push_back(tmp_traces[i]);
+    }
+  }
+
   template <typename T>
   void add_kwargs_to_trace(const std::string &key, T value) {
     // default index to the last trace
@@ -284,15 +319,30 @@ public:
 
   void add_command(const std::string &func, Dictionary &&value);
 
-  Dictionary &get_trace(int idx) { return m_traces[idx].m_kwargs; }
+  Dictionary &get_trace(int idx) {
+    if (idx < 0)
+      idx += size();
+    return m_traces[idx].m_kwargs;
+  }
 
   Trace &trace(int idx);
 
   int size() const { return m_traces.size(); }
 
-  Dictionary get_trace_copy(int idx) const {
-    Dictionary new_copy(m_traces[idx].m_kwargs);
-    return new_copy;
+  Trace get_trace_copy(int idx) const {
+    Trace new_trace;
+    Dictionary new_copy_kwargs(m_traces[idx].m_kwargs);
+    new_trace.m_method_func = m_traces[idx].m_method_func;
+    new_trace.m_method = m_traces[idx].m_method;
+    new_trace.m_kwargs.set_kwargs(new_copy_kwargs);
+    return new_trace;
+  }
+
+  Figure copy() const {
+    Figure new_fig;
+    for (int i = 0; i < size(); ++i)
+      new_fig.add_trace(get_trace_copy(i));
+    return new_fig;
   }
 
   void send(zmq::send_flags send_flags = zmq::send_flags::dontwait);

@@ -16,7 +16,7 @@ Plotly::Trace scatter() {
       Plotly::Dictionary(                     //
           "mode", "markers",                  //
           "marker_size", 10,                  //
-          "marker_opacity", 0.9,              //
+//          "marker_opacity", 0.9,              //
           "marker_colorscale", "Viridis",     //
           "marker_colorbar_title", "Colorbar" //
           )                                   //
@@ -32,7 +32,7 @@ Plotly::Trace scatter(std::vector<T1> &x, std::vector<T2> &y) {
 }
 
 template <typename T1, typename T2>
-Plotly::Trace scatterWithColour(std::vector<T1> &x, std::vector<T1> &y,
+Plotly::Trace scatter_with_colour(std::vector<T1> &x, std::vector<T1> &y,
                                 std::vector<T2> &c) {
   Plotly::Trace trace = scatter(x, y);
   trace["marker_color"] = c;
@@ -159,7 +159,8 @@ void set_equal_axis(Figure &fig) {
 
 // the tuple is "stats name", "(x) vec of values' group", "(y) vec of values"
 template <class Numeric = double,
-          typename = std::enable_if_t<std::is_arithmetic_v<Numeric>, Numeric>>
+          typename = std::enable_if_t<std::is_arithmetic<Numeric>::value,
+                                      Numeric>>
 using boxplot_datatype =
     std::tuple<std::string, std::vector<std::string>, std::vector<Numeric>>;
 
