@@ -1,21 +1,21 @@
 syntax = "proto3";
-package PlotlyMsg;
+package PlotMsgProto;
 
 //import "google/protobuf/struct.proto";
 
-message SeriesD {
+message SeriesDMsg {
   repeated double data = 1 [packed = true];
 }
 
-message SeriesI {
+message SeriesIMsg {
   repeated int32 data = 1 [packed = true];
 }
 
-message SeriesString {
+message SeriesStringMsg {
   repeated string data = 1;
 }
 
-message SeriesAny {
+message SeriesAnyMsg {
   message value {
     enum NullValue {
       // Null value.
@@ -31,51 +31,51 @@ message SeriesAny {
   repeated value data = 1;
 }
 
-message DictItemVal {
+message DictItemValMsg {
   oneof value {
-    Dictionary   dict = 1;
-    SeriesD      series_d = 2;
-    SeriesI      series_i = 3;
+    DictionaryMsg   dict = 1;
+    SeriesDMsg      series_d = 2;
+    SeriesIMsg      series_i = 3;
     string       string = 4;
     double       double = 5;
     int32        int = 6;
     bool         bool = 7;
-    SeriesString series_string = 8;
-    SeriesAny    series_any = 9;
+    SeriesStringMsg series_string = 8;
+    SeriesAnyMsg    series_any = 9;
   }
 }
 
-message Dictionary {
-  map<string, DictItemVal> data = 1;
+message DictionaryMsg {
+  map<string, DictItemValMsg> data = 1;
 }
 
-message Trace {
+message PlotlyTrace {
   enum CreationMethods {
     graph_objects = 0;
     figure_factory = 1;
     plotly_express = 2;
     custom = 3;
   }
-  Dictionary kwargs = 1;
+  DictionaryMsg kwargs = 1;
   CreationMethods method = 2;
   string method_func = 3;
 }
 
-message Figure {
+message PlotlyFigureMsg {
   string uuid = 1;
-  repeated Trace traces = 2;
-  repeated Command commands = 3;
+  repeated PlotlyTrace traces = 2;
+  repeated CommandMsg commands = 3;
 }
 
-message Command {
+message CommandMsg {
   // arbitary commands to operates on the figure object
   string func = 1;
-  Dictionary kwargs = 2;
+  DictionaryMsg kwargs = 2;
 }
 
 message MessageContainer {
   oneof message {
-    Dictionary dict = 1;
-    Figure      fig = 2;
+    DictionaryMsg dict = 1;
+    PlotlyFigureMsg fig = 2;
   }
 }

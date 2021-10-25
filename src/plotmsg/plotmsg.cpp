@@ -1,6 +1,6 @@
-#include "cpp2py_plotly.hpp"
+#include "plotmsg.hpp"
 
-namespace Plotly {
+namespace PlotMsg {
 
 void initialise_publisher(int sleep_after_bind, const std::string &addr) {
   if (static_publisher != nullptr)
@@ -17,16 +17,16 @@ void initialise_publisher(int sleep_after_bind, const std::string &addr) {
 ////////////////////////////////////////
 
 void Dictionary::add_kwargs(
-    Plotly::Dictionary::DictionaryItemPair &value) const {
+    PlotMsg::Dictionary::DictionaryItemPair &value) const {
   (*m_msg->mutable_data())[value.m_key].Swap(&value.m_item_val);
 }
 
-void Dictionary::set_kwargs(Plotly::Dictionary &&value) const {
+void Dictionary::set_kwargs(PlotMsg::Dictionary &&value) const {
   Dictionary lvalue(value);
   set_kwargs(lvalue);
 }
 
-void Dictionary::set_kwargs(Plotly::Dictionary &value) const {
+void Dictionary::set_kwargs(PlotMsg::Dictionary &value) const {
   m_msg->mutable_data()->swap(*value.m_msg->mutable_data());
 }
 
@@ -39,32 +39,32 @@ void _deep_copy_helper(const DictionaryMsgData &ori_dict,
     auto key = it->first;
     auto itemVal = it->second;
 
-    if (itemVal.value_case() == PlotlyMsg::DictItemVal::kSeriesD) {
+    if (itemVal.value_case() == DictItemValMsg::kSeriesD) {
       // TODO
-      auto *series_d = new PlotlyMsg::SeriesD();
+      auto *series_d = new SeriesDMsg();
       series_d->ParseFromString(itemVal.series_d().SerializeAsString());
       new_dict[key].set_allocated_series_d(series_d);
-    } else if (itemVal.value_case() == PlotlyMsg::DictItemVal::kSeriesI) {
+    } else if (itemVal.value_case() == DictItemValMsg::kSeriesI) {
       // TODO
-      auto *series_i = new PlotlyMsg::SeriesI();
+      auto *series_i = new SeriesIMsg();
       series_i->ParseFromString(itemVal.series_i().SerializeAsString());
       new_dict[key].set_allocated_series_i(series_i);
       itemVal.series_i().New(itemVal.GetArena());
-    } else if (itemVal.value_case() == PlotlyMsg::DictItemVal::kBool) {
+    } else if (itemVal.value_case() == DictItemValMsg::kBool) {
       _set_DictItemVal(new_dict[key], itemVal.bool_());
-    } else if (itemVal.value_case() == PlotlyMsg::DictItemVal::kDict) {
+    } else if (itemVal.value_case() == DictItemValMsg::kDict) {
       auto *nested_dict = new DictionaryMsg();
       _deep_copy_helper(itemVal.dict().data(),
                         (*(*nested_dict).mutable_data()));
       new_dict[key].set_allocated_dict(nested_dict);
-    } else if (itemVal.value_case() == PlotlyMsg::DictItemVal::kDouble) {
+    } else if (itemVal.value_case() == DictItemValMsg::kDouble) {
       _set_DictItemVal(new_dict[key], itemVal.double_());
-    } else if (itemVal.value_case() == PlotlyMsg::DictItemVal::kString) {
+    } else if (itemVal.value_case() == DictItemValMsg::kString) {
       std::string new_str = itemVal.string();
       _set_DictItemVal(new_dict[key], new_str);
     } else {
       throw std::runtime_error(
-          "Unimplemented DictItemVal " +
+          "Unimplemented DictItemValMsg " +
           std::to_string(static_cast<int>(itemVal.value_case())));
     };
   }
@@ -85,7 +85,7 @@ std::ostream &operator<<(std::ostream &out, Dictionary const &dict) {
 }
 
 ////////////////////////////////////////
-// implementation of Plotly Figure
+// implementation of PlotMsg Figure
 ////////////////////////////////////////
 
 void Figure::send(zmq::send_flags send_flags) {
@@ -113,7 +113,7 @@ void Figure::send(zmq::send_flags send_flags) {
 void Figure::reset() {
   m_msg.Clear();
   m_traces.clear();
-  m_msg.set_allocated_fig(new PlotlyMsg::Figure());
+  m_msg.set_allocated_fig(new PlotlyFigureMsg());
   set_uuid(m_uuid);
 }
 zmq::message_t Figure::build_zmq_msg() {
@@ -191,78 +191,74 @@ void Figure::add_command(const std::string &func, Dictionary &&value) {
 ////////////////////////////////////////
 // Helpers
 ////////////////////////////////////////
-PlotlyMsg::SeriesD *vec_to_allocated_seriesD(std::vector<double> value) {
+SeriesDMsg *vec_to_allocated_seriesD(std::vector<double> value) {
   google::protobuf::RepeatedField<double> data(value.begin(), value.end());
-  auto *series = new PlotlyMsg::SeriesD();
+  auto *series = new SeriesDMsg();
   series->mutable_data()->Swap(&data);
   return series;
 }
 
-PlotlyMsg::SeriesI *vec_to_allocated_seriesI(std::vector<int> value) {
+SeriesIMsg *vec_to_allocated_seriesI(std::vector<int> value) {
   google::protobuf::RepeatedField<int> data(value.begin(), value.end());
-  auto *series = new PlotlyMsg::SeriesI();
+  auto *series = new SeriesIMsg();
   series->mutable_data()->Swap(&data);
   return series;
 }
 
-PlotlyMsg::SeriesString *
-vec_to_allocated_seriesString(std::vector<std::string> value) {
+SeriesStringMsg *vec_to_allocated_seriesString(std::vector<std::string> value) {
   google::protobuf::RepeatedPtrField<std::string> data(value.begin(),
                                                        value.end());
-  auto *series = new PlotlyMsg::SeriesString();
+  auto *series = new SeriesStringMsg();
   series->mutable_data()->Swap(&data);
   return series;
 }
 
-PlotlyMsg::SeriesAny *
-vec_to_allocated_seriesAny(std::vector<PlotlyMsg::SeriesAny_value> value) {
-  google::protobuf::RepeatedPtrField<PlotlyMsg::SeriesAny_value> data(
-      value.begin(), value.end());
-  auto *series = new PlotlyMsg::SeriesAny();
+SeriesAnyMsg *
+vec_to_allocated_seriesAny(std::vector<SeriesAnyMsg_value> value) {
+  google::protobuf::RepeatedPtrField<SeriesAnyMsg_value> data(value.begin(),
+                                                              value.end());
+  auto *series = new SeriesAnyMsg();
   series->mutable_data()->Swap(&data);
   return series;
 }
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, bool value) {
+void _set_DictItemVal(DictItemValMsg &item_val, bool value) {
   item_val.set_bool_(value);
 }
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, double value) {
+void _set_DictItemVal(DictItemValMsg &item_val, double value) {
   item_val.set_double_(value);
 }
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, int value) {
+void _set_DictItemVal(DictItemValMsg &item_val, int value) {
   item_val.set_int_(value);
 }
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+void _set_DictItemVal(DictItemValMsg &item_val,
                       const std::vector<double> &value) {
   item_val.set_allocated_series_d(vec_to_allocated_seriesD(value));
 }
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
-                      const std::vector<int> &value) {
+void _set_DictItemVal(DictItemValMsg &item_val, const std::vector<int> &value) {
   item_val.set_allocated_series_i(vec_to_allocated_seriesI(value));
 }
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+void _set_DictItemVal(DictItemValMsg &item_val,
                       const std::vector<std::string> &value) {
   item_val.set_allocated_series_string(vec_to_allocated_seriesString(value));
 }
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
-                      const std::vector<PlotlyMsg::SeriesAny_value> &value) {
+void _set_DictItemVal(DictItemValMsg &item_val,
+                      const std::vector<SeriesAnyMsg_value> &value) {
   item_val.set_allocated_series_any(vec_to_allocated_seriesAny(value));
 }
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
-                      Plotly::Dictionary &value) {
+void _set_DictItemVal(DictItemValMsg &item_val, PlotMsg::Dictionary &value) {
   item_val.set_allocated_dict(value.release_ptr());
 }
 
 // r-value, uses l-value definition
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
-                      Plotly::Dictionary &&value) {
+void _set_DictItemVal(DictItemValMsg &item_val, PlotMsg::Dictionary &&value) {
   _set_DictItemVal(item_val, value);
 }
 
@@ -279,38 +275,38 @@ std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict) {
     auto itemVal = it->second;
 
     switch (itemVal.value_case()) {
-    case PlotlyMsg::DictItemVal::kSeriesD:
+    case DictItemValMsg::kSeriesD:
       out << "seriesD<..>";
       break;
-    case PlotlyMsg::DictItemVal::kSeriesI:
+    case DictItemValMsg::kSeriesI:
       out << "seriesI<..>";
       break;
-    case PlotlyMsg::DictItemVal::kSeriesString:
+    case DictItemValMsg::kSeriesString:
       out << "seriesString<..>";
       break;
-    case PlotlyMsg::DictItemVal::kSeriesAny:
+    case DictItemValMsg::kSeriesAny:
       out << "seriesAny<..>";
       break;
-    case PlotlyMsg::DictItemVal::kBool:
+    case DictItemValMsg::kBool:
       out << itemVal.bool_();
       break;
-    case PlotlyMsg::DictItemVal::kDict:
+    case DictItemValMsg::kDict:
       out << itemVal.dict().data();
       break;
-    case PlotlyMsg::DictItemVal::kDouble:
+    case DictItemValMsg::kDouble:
       out << itemVal.double_();
       break;
-    case PlotlyMsg::DictItemVal::kInt:
+    case DictItemValMsg::kInt:
       out << itemVal.int_();
       break;
-    case PlotlyMsg::DictItemVal::kString:
+    case DictItemValMsg::kString:
       out << itemVal.string();
       break;
-    case PlotlyMsg::DictItemVal::VALUE_NOT_SET:
+    case DictItemValMsg::VALUE_NOT_SET:
       break;
     default:
       throw std::runtime_error(
-          "Unimplemented DictItemVal " +
+          "Unimplemented DictItemValMsg " +
           std::to_string(static_cast<int>(itemVal.value_case())));
     };
   }
@@ -319,12 +315,12 @@ std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict) {
 }
 
 //////////////////////////////////////////////////////////////////////////
-Trace::Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
+Trace::Trace(PlotlyTrace::CreationMethods method, std::string method_func,
              Dictionary &kwargs)
     : m_method(method), m_method_func(std::move(method_func)) {
   m_kwargs.set_kwargs(kwargs);
 }
-Trace::Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
+Trace::Trace(PlotlyTrace::CreationMethods method, std::string method_func,
              Dictionary &&kwargs)
     : m_method(method), m_method_func(std::move(method_func)) {
   m_kwargs.set_kwargs(std::forward<Dictionary>(kwargs));
@@ -336,26 +332,25 @@ std::ostream &operator<<(std::ostream &out, Trace const &fig) {
   return out;
 }
 
-void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec,
                                 NullValueType null) {
   // set null value
   vec.emplace_back();
-  vec.back().set_null(PlotlyMsg::SeriesAny_value_NullValue_NULL_VALUE);
+  vec.back().set_null(SeriesAnyMsg_value_NullValue_NULL_VALUE);
 }
-void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec,
                                 const std::string &val) {
   vec.emplace_back();
   vec.back().set_string(val);
 }
-void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec,
                                 double val) {
   vec.emplace_back();
   vec.back().set_double_(val);
 }
-void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
-                                int val) {
+void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec, int val) {
   vec.emplace_back();
   vec.back().set_int_(val);
 }
 
-}; // namespace Plotly
+}; // namespace PlotMsg

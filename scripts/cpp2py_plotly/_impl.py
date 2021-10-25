@@ -14,7 +14,7 @@ from IPython.display import display
 from . import msg_pb2
 
 try:
-    if msg_pb2.IS_CPP2PY_PROTOBUF_MSG_PLACE_HOLDER:
+    if msg_pb2.IS_PLOTMSG_PROTOBUF_MSG_PLACE_HOLDER:
         raise RuntimeError(
             f"The file '{msg_pb2.__file__}' appears to be a placeholder file. "
             "Have you compiled this module correctly and installed the corresponding python package?"

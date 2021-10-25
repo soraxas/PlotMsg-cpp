@@ -1,2 +1,2 @@
 add_subdirectory(protobuf_msg)
-add_subdirectory(cpp2py_plotly)
+add_subdirectory(plotmsg)

@@ -9,21 +9,26 @@
 #include <utility>
 #include <zmq.hpp>
 
-#define CPP2PY_PLOTLY_DEFAULT_ADDR "tcp://127.0.0.1:5557"
+#define PLOTMSG_DEFAULT_ADDR "tcp://127.0.0.1:5557"
 
-namespace Plotly {
+namespace PlotMsg {
+
+///////////////////////////////////////////////////////
+// namespace ProtoMsg = PlotMsgProto;
+using namespace PlotMsgProto;
+
+///////////////////////////////////////////////////////
+
 // define the static storage
 inline std::unique_ptr<zmq::context_t> static_context;
 inline std::unique_ptr<zmq::socket_t> static_publisher;
 
 // static functions
 void initialise_publisher(int sleep_after_bind = 1000,
-                          const std::string &addr = CPP2PY_PLOTLY_DEFAULT_ADDR);
+                          const std::string &addr = PLOTMSG_DEFAULT_ADDR);
 
 // easy alias
-using DictionaryMsg = PlotlyMsg::Dictionary;
-using DictionaryMsgData =
-    google::protobuf::Map<std::string, PlotlyMsg::DictItemVal>;
+using DictionaryMsgData = google::protobuf::Map<std::string, DictItemValMsg>;
 
 std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict);
 
@@ -34,47 +39,41 @@ class Dictionary;
 // Helpers
 ////////////////////////////////////////
 
-PlotlyMsg::SeriesD *vec_to_allocated_seriesD(std::vector<double> value);
+SeriesDMsg *vec_to_allocated_seriesD(std::vector<double> value);
 
-PlotlyMsg::SeriesI *vec_to_allocated_seriesI(std::vector<int> value);
+SeriesIMsg *vec_to_allocated_seriesI(std::vector<int> value);
 
-PlotlyMsg::SeriesString *
-vec_to_allocated_seriesString(std::vector<std::string> value);
+SeriesStringMsg *vec_to_allocated_seriesString(std::vector<std::string> value);
 
-PlotlyMsg::SeriesAny *
-vec_to_allocated_seriesAny(std::vector<PlotlyMsg::SeriesAny_value> value);
+SeriesAnyMsg *vec_to_allocated_seriesAny(std::vector<SeriesAnyMsg_value> value);
 
-// helper function to assign given PlotlyMsg::DictItemVal with T value
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, bool value);
+// helper function to assign given DictItemValMsg with T value
+void _set_DictItemVal(DictItemValMsg &item_val, bool value);
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, double value);
+void _set_DictItemVal(DictItemValMsg &item_val, double value);
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, int value);
+void _set_DictItemVal(DictItemValMsg &item_val, int value);
 
-template <typename T>
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val, T value) {
+template <typename T> void _set_DictItemVal(DictItemValMsg &item_val, T value) {
   // this works for l/r-value std::string, and const char.
   item_val.set_string(std::forward<T>(value));
 }
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+void _set_DictItemVal(DictItemValMsg &item_val,
                       const std::vector<double> &value);
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
-                      const std::vector<int> &value);
+void _set_DictItemVal(DictItemValMsg &item_val, const std::vector<int> &value);
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
+void _set_DictItemVal(DictItemValMsg &item_val,
                       const std::vector<std::string> &value);
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
-                      const std::vector<PlotlyMsg::SeriesAny_value> &value);
+void _set_DictItemVal(DictItemValMsg &item_val,
+                      const std::vector<SeriesAnyMsg_value> &value);
 
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
-                      Plotly::Dictionary &value);
+void _set_DictItemVal(DictItemValMsg &item_val, PlotMsg::Dictionary &value);
 
 // r-value, uses l-value definition
-void _set_DictItemVal(PlotlyMsg::DictItemVal &item_val,
-                      Plotly::Dictionary &&value);
+void _set_DictItemVal(DictItemValMsg &item_val, PlotMsg::Dictionary &&value);
 
 ////////////////////////////////////////
 
@@ -82,13 +81,13 @@ struct IndexAccessProxy {
   /* This proxy is returned when accessing fig or trace. This proxy object
    * will in-turn forward the assignment when user assign value to this proxy.
    */
-  Plotly::DictionaryMsgData &ref_data;
+  PlotMsg::DictionaryMsgData &ref_data;
   std::string m_key;
-  IndexAccessProxy(Plotly::DictionaryMsgData &ref_data, std::string key)
+  IndexAccessProxy(PlotMsg::DictionaryMsgData &ref_data, std::string key)
       : ref_data(ref_data), m_key(std::move(key)) {}
 
   template <typename T> IndexAccessProxy &operator=(T &other) {
-    Plotly::_set_DictItemVal(ref_data[m_key], std::forward<T>(other));
+    PlotMsg::_set_DictItemVal(ref_data[m_key], std::forward<T>(other));
     return *this;
   }
 
@@ -112,11 +111,11 @@ public:
   public:
     template <typename T> DictionaryItemPair(const std::string &key, T value) {
       m_key = key;
-      Plotly::_set_DictItemVal(m_item_val, std::forward<T>(value));
+      PlotMsg::_set_DictItemVal(m_item_val, std::forward<T>(value));
     }
 
     std::string m_key;
-    PlotlyMsg::DictItemVal m_item_val;
+    DictItemValMsg m_item_val;
   };
 
   Dictionary() { reset(); }
@@ -175,17 +174,17 @@ public:
   // methods to add kwargs into the dictionary
 
   template <typename T> void add_kwargs(const std::string &key, T value) {
-    // pass the DictItemVal reference to helper function as template
-    Plotly::_set_DictItemVal((*m_msg->mutable_data())[key],
-                             std::forward<T>(value));
+    // pass the DictItemValMsg reference to helper function as template
+    PlotMsg::_set_DictItemVal((*m_msg->mutable_data())[key],
+                              std::forward<T>(value));
   }
 
   void add_kwargs(DictionaryItemPair &value) const;
 
   // directly set kwargs
-  void set_kwargs(Plotly::Dictionary &value) const;
+  void set_kwargs(PlotMsg::Dictionary &value) const;
 
-  void set_kwargs(Plotly::Dictionary &&value) const;
+  void set_kwargs(PlotMsg::Dictionary &&value) const;
 
   std::unique_ptr<Dictionary> deep_copy() const;
 
@@ -211,12 +210,12 @@ public:
 
 class Trace {
 public:
-  Trace() : Trace(PlotlyMsg::Trace::graph_objects, "") {}
+  Trace() : Trace(PlotlyTrace::graph_objects, "") {}
 
-  Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
+  Trace(PlotlyTrace::CreationMethods method, std::string method_func,
         Dictionary &kwargs);
 
-  Trace(PlotlyMsg::Trace::CreationMethods method, std::string method_func,
+  Trace(PlotlyTrace::CreationMethods method, std::string method_func,
         Dictionary &&kwargs = {});
 
   IndexAccessProxy operator[](const std::string &key) const {
@@ -247,7 +246,7 @@ public:
 
   friend std::ostream &operator<<(std::ostream &out, Trace const &fig);
 
-  PlotlyMsg::Trace::CreationMethods m_method;
+  PlotlyTrace::CreationMethods m_method;
   std::string m_method_func;
   Dictionary m_kwargs;
 };
@@ -264,7 +263,7 @@ public:
 
   void set_uuid(const std::string &_uuid) { m_uuid = _uuid; }
 
-  void set_trace_kwargs(int idx, Plotly::Dictionary &value);
+  void set_trace_kwargs(int idx, PlotMsg::Dictionary &value);
 
   void add_trace(Trace &trace) {
     _add_trace();
@@ -278,7 +277,7 @@ public:
 
   // perfect forward all arguments to create trace
   template <typename... Ts> void add_trace(Ts... args) {
-    add_trace(Plotly::Trace(std::forward<Ts>(args)...));
+    add_trace(PlotMsg::Trace(std::forward<Ts>(args)...));
   }
 
   /*
@@ -357,7 +356,7 @@ private:
   zmq::message_t build_zmq_msg();
 
   // variables
-  PlotlyMsg::MessageContainer m_msg;
+  MessageContainer m_msg;
   std::string m_uuid;
 };
 
@@ -368,25 +367,24 @@ private:
 enum NullValueType { value };
 NullValueType NullValue = NullValueType::value;
 
-std::vector<PlotlyMsg::SeriesAny_value> seriesAny_vector_create() {
-  return std::vector<PlotlyMsg::SeriesAny_value>();
+std::vector<SeriesAnyMsg_value> seriesAny_vector_create() {
+  return std::vector<SeriesAnyMsg_value>();
 }
 
-void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec,
                                 NullValueType null);
 
-void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec,
                                 const std::string &val);
 
-void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
+void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec,
                                 double val);
 
-void seriesAny_vector_push_back(std::vector<PlotlyMsg::SeriesAny_value> &vec,
-                                int val);
+void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec, int val);
 
 //////////
 template <typename T, typename... Ts>
-void seriesAny_vector(std::vector<PlotlyMsg::SeriesAny_value> &vec, T first,
+void seriesAny_vector(std::vector<SeriesAnyMsg_value> &vec, T first,
                       Ts... args) {
   // intermediate worker
   seriesAny_vector_push_back(vec, first);
@@ -394,18 +392,18 @@ void seriesAny_vector(std::vector<PlotlyMsg::SeriesAny_value> &vec, T first,
 }
 
 template <typename T>
-void seriesAny_vector(std::vector<PlotlyMsg::SeriesAny_value> &vec, T first) {
+void seriesAny_vector(std::vector<SeriesAnyMsg_value> &vec, T first) {
   // last worker
   seriesAny_vector_push_back(vec, first);
 }
 
 template <typename... Ts>
-std::vector<PlotlyMsg::SeriesAny_value> seriesAny_vector(Ts... args) {
+std::vector<SeriesAnyMsg_value> seriesAny_vector(Ts... args) {
   // entrypoint
-  std::vector<PlotlyMsg::SeriesAny_value> vec = seriesAny_vector_create();
+  std::vector<SeriesAnyMsg_value> vec = seriesAny_vector_create();
   seriesAny_vector(vec, args...);
   return vec;
 }
 //////////
 
-} // namespace Plotly
+} // namespace PlotMsg

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <numeric>
 
-#include "cpp2py_plotly.hpp"
-#include "cpp2py_plotly_template.hpp"
+#include "plotmsg.hpp"
+#include "plotmsg_template.hpp"
 
 #ifdef WITH_EIGEN
 #include <Eigen/Dense>
@@ -10,13 +10,13 @@
 
 int main(int argc, char *argv[]) {
 
-  Plotly::Dictionary d("a", 3);
+  PlotMsg::Dictionary d("a", 3);
 
   d["24"] = 4;
   d["24"] = "lollll";
   d["24"] = 1.11;
   d["2v4"] = "lollll";
-  d["2v4"] = Plotly::Dictionary("x", "xxx", "y", 999);
+  d["2v4"] = PlotMsg::Dictionary("x", "xxx", "y", 999);
 
   std::cout << d << std::endl;
 
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
 
   std::cout << d << std::endl;
 
-  Plotly::Figure fig22;
+  PlotMsg::Figure fig22;
 
   fig22._add_trace();
   //  fig22.trace(-1).m_kwargs["2"]["hahhaa"] = 34;
@@ -43,34 +43,35 @@ int main(int argc, char *argv[]) {
   auto y = std::vector<double>(20, 4.2);
   auto o = std::vector<int>(20, 7);
 
-  std::cout << Plotly::TraceTemplate::scatter() << std::endl;
-  std::cout << Plotly::TraceTemplate::scatter(x, y) << std::endl;
-  std::cout << Plotly::TraceTemplate::scatter_with_colour(x, y, o) << std::endl;
+  std::cout << PlotMsg::TraceTemplate::scatter() << std::endl;
+  std::cout << PlotMsg::TraceTemplate::scatter(x, y) << std::endl;
+  std::cout << PlotMsg::TraceTemplate::scatter_with_colour(x, y, o)
+            << std::endl;
 
   std::iota(std::begin(x), std::end(x), 0);
   std::iota(std::begin(y), std::end(y), 5);
   std::iota(std::begin(o), std::end(o), 3);
 
-  using ditem = Plotly::Dictionary::DictionaryItemPair;
+  using ditem = PlotMsg::Dictionary::DictionaryItemPair;
 
-  Plotly::initialise_publisher();
+  PlotMsg::initialise_publisher();
 
-  Plotly::Figure fig;
+  PlotMsg::Figure fig;
 
   fig.set_uuid("test_1");
   fig.add_trace(                                                   //
-      Plotly::Trace(                                               //
-          PlotlyMsg::Trace::graph_objects, "Scatter",              //
-          Plotly::Dictionary(                                      //
+      PlotMsg::Trace(                                              //
+          PlotMsgProto::PlotlyTrace::graph_objects, "Scatter",     //
+          PlotMsg::Dictionary(                                     //
               ditem("mode", "markers"),                            //
               ditem("x", x),                                       //
               ditem("y", y),                                       //
               ditem("marker",                                      //
-                    Plotly::Dictionary(                            //
+                    PlotMsg::Dictionary(                           //
                         ditem("size", 14),                         //
                         ditem("opacity", 0.5),                     //
                         ditem("colorscale", "Viridis"),            //
-                        ditem("colorbar", Plotly::Dictionary(      //
+                        ditem("colorbar", PlotMsg::Dictionary(     //
                                               "title", "Colorbar") //
                               ),                                   //
                         ditem("color", o)                          //
@@ -81,7 +82,7 @@ int main(int argc, char *argv[]) {
   std::cout << fig.get_trace_copy(0) << std::endl;
 
   fig.add_command("update_yaxes",
-                  Plotly::Dictionary("scaleanchor", "x", "scaleratio", 1));
+                  PlotMsg::Dictionary("scaleanchor", "x", "scaleratio", 1));
 
   fig.send();
   fig.reset();
@@ -98,8 +99,8 @@ int main(int argc, char *argv[]) {
     std::vector<std::pair<double, double>> ey = {
         {14.4, 23.4}, {14.4, 8.4}, {14.4, 3.7}};
 
-    fig.add_trace(Plotly::TraceTemplate::vertices(__x, __y));
-    fig.add_trace(Plotly::TraceTemplate::edges(ex, ey));
+    fig.add_trace(PlotMsg::TraceTemplate::vertices(__x, __y));
+    fig.add_trace(PlotMsg::TraceTemplate::edges(ex, ey));
 
     fig.send();
   }
