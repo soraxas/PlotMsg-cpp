@@ -5,4 +5,4 @@ definitions of the cpp2py messages would not be available and hence, this
 module would not function correctly.
 """
 
-IS_CPP2PY_PROTOBUF_MSG_PLACE_HOLDER = True
+IS_PLOTMSG_PROTOBUF_MSG_PLACE_HOLDER = True

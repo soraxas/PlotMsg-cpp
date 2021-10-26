@@ -5,11 +5,11 @@ import setuptools
 long_description = ""
 
 setuptools.setup(
-    name="cpp2py_plotly",
-    version="0.0.1",
-    author="Example Author",
-    author_email="author@example.com",
-    description="A small example package",
+    name="plotmsg",
+    version="0.7.1",
+    author="Tin Lai",
+    author_email="oscar@tinyiu.com",
+    description="Rendering backend for ",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/pypa/sampleproject",
@@ -21,7 +21,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    package_dir={"": "cpp2py_plotly"},
-    packages=setuptools.find_packages(where="cpp2py_plotly"),
+    package_dir={"": "plotmsg"},
+    packages=setuptools.find_packages(where="plotmsg"),
     python_requires=">=3.6",
 )

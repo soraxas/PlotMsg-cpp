@@ -1,6 +1,6 @@
-# Plotly for C++ via Python
+# PlotMsg for C++
 
-This repository brings **Plotly** to C++ by utilising the native Plotly library in Python. This is achieved by implementing a *publisher* and *subscriber* model between C++ and Python, and a stateful model in the **Jupyter notebook** ecosystem that captures the incoming message. It supports asynchronous refresh within the notebook whenever a new message is published from your C++ files, and automatically display them within the notebook. This library also support non-notebook usage where it uses Plotly's native figure display from within your browser.
+This repository brings **PlotMsg** to C++ by utilising the native PlotMsg library backend in Python. This is achieved by implementing a *publisher* and *subscriber* model between C++ and Python, and a stateful model in the **Jupyter notebook** ecosystem that captures the incoming message. It supports asynchronous refresh within the notebook whenever a new message is published from your C++ files, and automatically display them within the notebook. This library also support non-notebook usage where it uses PlotMsg's native figure display from within your browser.
 
 # Requirements
 
@@ -10,7 +10,7 @@ This repository brings **Plotly** to C++ by utilising the native Plotly library 
 
 # Using the library in your C++ project
 
-You can include the project it as you normally. The following shows a snippet to quickly visualise your code using Plotly without much setup
+You can include the project it as you normally. The following shows a snippet to quickly visualise your code using PlotMsg without much setup
 
 ## Quick and dirty out-of-tree build in cmake
 
@@ -23,15 +23,15 @@ cmake_minimum_required(...)
 
 # Add as out-of-tree build (with absolute path & binary directory)
 add_subdirectory(
-        /home/soraxas/git-repo/cpp2py_plotly
-        cpp2py_plotly
+        /home/soraxas/git-repo/plotmsg
+        plotmsg
 )
-find_package( cpp2py_plotly REQUIRED )
+find_package( plotmsg REQUIRED )
 
 ...
 
 # link the library to your target
-target_link_libraries( ${MY_TARGET} cpp2py_plotly )
+target_link_libraries( ${MY_TARGET} plotmsg )
 ```
 
 # Example Usage
@@ -39,10 +39,10 @@ target_link_libraries( ${MY_TARGET} cpp2py_plotly )
 Say you have something like this in your `${MY_TARGET}`
 
 ```cpp
-#include "cpp2py_plotly.hpp"
+#include "plotmsg.hpp"
 
 int main(int argc, char const *argv[]) {
-  Plotly::Figure fig;
+  PlotMsg::Figure fig;
   std::vector<double> x{1, 2, 3, 4, 5, 6, 7};
   std::vector<double> y{1, 2, 3, 2, 3, 4, 5};
 
@@ -60,12 +60,12 @@ cmake -Bbuild
 make -C build
 ```
 
-to build your C++ project. 
+to build your C++ project.
 
 You can then, for example, start the python subscriber with
 
 ```sh
-ipython -i lib/cpp2py_plotly.py
+ipython -i lib/plotmsg.py
 ```
 
 ```python
@@ -78,10 +78,12 @@ Afterwards, the ipython kernel is listening at the *default* **tcp://127.0.0.1:5
 
 ## Example Project
 
-`./example_other_project` is an example of a simple project. You can test it out with
+`./demo_project` is an example of a simple project that utilises `plotmsg`. You can 
+test 
+it out with
 
 ```sh
-cd example_other_project
+cd demo_project
 cmake -Bbuild
 make -C build
 
@@ -93,4 +95,25 @@ python py_sub_example.py &
 
 # killall background jobs (py script in (1) that is running in bg )
 kill $(jobs -p)
+```
+
+
+```sh
+git clone https://github.com/protocolbuffers/protobuf.git
+cd protobuf
+git submodule update --init --recursive
+./autogen.sh
+
+./configure --prefix=/usr
+make
+make check
+sudo make install
+sudo ldconfig # refresh shared library cache.
+
+```
+
+```sh
+cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/zmq_cmake
+make
+make install
 ```

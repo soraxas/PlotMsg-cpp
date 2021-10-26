@@ -17,22 +17,23 @@ try:
     if msg_pb2.IS_PLOTMSG_PROTOBUF_MSG_PLACE_HOLDER:
         raise RuntimeError(
             f"The file '{msg_pb2.__file__}' appears to be a placeholder file. "
-            "Have you compiled this module correctly and installed the corresponding python package?"
+            "Have you compiled this module correctly and installed the corresponding "
+            "python package?"
         )
 except AttributeError:
     pass
 
-CPP2PY_ADDRESS = "tcp://127.0.0.1:5557"
-CPP2PY_MODE_DEFAULT = "default"
-CPP2PY_MODE_ASYNC = "async"
-CPP2PY_MODE_WIDGET = "ipywidget"
+PLOTMSG_ADDRESS = "tcp://127.0.0.1:5557"
+PLOTMSG_MODE_DEFAULT = "default"
+PLOTMSG_MODE_ASYNC = "async"
+PLOTMSG_MODE_WIDGET = "ipywidget"
 
 
 # helper decorator to only execute ipywidget related code
 def ipywidget_mode(warn=False):
     def decorator(f):
         def wrapper(self, *args, **kwargs):
-            if self.mode == CPP2PY_MODE_WIDGET:
+            if self.mode == PLOTMSG_MODE_WIDGET:
                 return f(self, *args, **kwargs)
             if warn:
                 print("Only works in jupyter notebook (ipywidget mode)")
@@ -46,6 +47,7 @@ def ipywidget_mode(warn=False):
 # helper function to check whether it's currently within jupyter notebook
 def inside_notebook():
     try:
+        # noinspection PyUnresolvedReferences
         shell = get_ipython().__class__.__name__
         if shell == "ZMQInteractiveShell":
             return True  # Jupyter notebook or qtconsole
@@ -72,10 +74,10 @@ class DummyClass:
         return self.dummy_func
 
 
-class Cpp2PyReciever:
+class PlotMsgReciever:
     """A class that listen to message from cpp"""
 
-    def __init__(self, address=CPP2PY_ADDRESS, ctx_mgr=None):
+    def __init__(self, address=PLOTMSG_ADDRESS, ctx_mgr=None):
         self.address = address
         self.socket = None
         self.mode = None
@@ -89,15 +91,15 @@ class Cpp2PyReciever:
 
         def unpack(inputs):
             inputs_t = type(inputs)
-            if inputs_t is msg_pb2.Dictionary:
+            if inputs_t is msg_pb2.DictionaryMsg:
                 return {k: unpack(v) for (k, v) in inputs.data.items()}
-            if inputs_t is msg_pb2.DictItemVal:
+            if inputs_t is msg_pb2.DictItemValMsg:
                 return unpack(getattr(inputs, inputs.WhichOneof("value")))
-            elif inputs_t in (msg_pb2.SeriesI, msg_pb2.SeriesD):
+            elif inputs_t in (msg_pb2.SeriesIMsg, msg_pb2.SeriesDMsg):
                 return np.array(inputs.data)
-            elif inputs_t is msg_pb2.SeriesString:
+            elif inputs_t is msg_pb2.SeriesStringMsg:
                 return list(inputs.data)
-            elif inputs_t is msg_pb2.SeriesAny:
+            elif inputs_t is msg_pb2.SeriesAnyMsg:
                 out = []
                 for d in inputs.data:
                     which = d.WhichOneof("value")
@@ -129,12 +131,12 @@ class Cpp2PyReciever:
         return unpack(getattr(msg, msg.WhichOneof("message")))
 
     # noinspection PyUnresolvedReferences
-    def initialise(self, sleep=1, mode=CPP2PY_MODE_DEFAULT):
+    def initialise(self, sleep=1, mode=PLOTMSG_MODE_DEFAULT):
         if self.mode == mode:
             return
-        if mode == CPP2PY_MODE_ASYNC:
+        if mode == PLOTMSG_MODE_ASYNC:
             context = zmq.asyncio.Context()
-        elif mode == CPP2PY_MODE_DEFAULT:
+        elif mode == PLOTMSG_MODE_DEFAULT:
             context = zmq.Context()
         else:
             raise ValueError("Unknown mode {}".format(mode))
@@ -152,7 +154,7 @@ class Cpp2PyReciever:
 
     def get_msg_func(self, flags=0):
         """Return a function that process the incoming encoded msg"""
-        self.initialise(mode=CPP2PY_MODE_DEFAULT)
+        self.initialise(mode=PLOTMSG_MODE_DEFAULT)
         encoded_msg = self.socket.recv(flags=flags)
         return lambda: self._get_msg(encoded_msg)
 
@@ -161,7 +163,7 @@ class Cpp2PyReciever:
 
     async def get_msg_async_func(self):
         """Return a function that process the incoming encoded msg, asyncly"""
-        self.initialise(mode=CPP2PY_MODE_ASYNC)
+        self.initialise(mode=PLOTMSG_MODE_ASYNC)
         encoded_msg = await self.socket.recv()
         return lambda: self._get_msg(encoded_msg)
 
@@ -169,13 +171,13 @@ class Cpp2PyReciever:
         return (await self.get_msg_async_func())()
 
 
-class Cpp2PyPlotly:
+class PlotMsgPlotly:
     class InfoLabelCtxMgr:
         """A class that represent a context manager for usage during processing msg."""
 
-        def __init__(self, c2p: "Cpp2PyPlotly"):
+        def __init__(self, plotmsg: "PlotMsgPlotly"):
             self.label = ipywidgets.HTML()
-            self.c2p = c2p
+            self.plotmsg = plotmsg
             self.label_format = (
                 "<i class='fa fa-{icon}'></i> <b>{short_txt}</b>  |  "
                 "<b>Last msg:</b> {timestamp}  |  "
@@ -189,7 +191,7 @@ class Cpp2PyPlotly:
             # self.last_msg_ts = time.strftime('%d-%m_%H:%M', time.localtime())
             self.last_msg_ts = time.strftime("%H:%M", time.localtime())
             self.update_label("Processing", "retweet")
-            self.c2p.hist_num_msgs += 1
+            self.plotmsg.hist_num_msgs += 1
 
         def __exit__(self, exc_type, exc_value, exc_traceback):
             icon = "check"
@@ -204,9 +206,9 @@ class Cpp2PyPlotly:
                 icon=icon,
                 short_txt=short_txt,
                 timestamp=self.last_msg_ts,
-                num_figs=self.c2p.num_figs,
-                num_msgs=self.c2p.num_msgs,
-                hist_num_msgs=self.c2p.hist_num_msgs,
+                num_figs=self.plotmsg.num_figs,
+                num_msgs=self.plotmsg.num_msgs,
+                hist_num_msgs=self.plotmsg.hist_num_msgs,
             )
 
     class ProgressBarCtxMgr:
@@ -232,8 +234,8 @@ class Cpp2PyPlotly:
 
     def __init__(
         self,
-        address: str = CPP2PY_ADDRESS,
-        mode: str = CPP2PY_MODE_WIDGET,
+        address: str = PLOTMSG_ADDRESS,
+        mode: str = PLOTMSG_MODE_WIDGET,
         initialise: bool = True,
         figure_type=None,
     ):
@@ -245,21 +247,21 @@ class Cpp2PyPlotly:
         self.msgs = self.__class__.stored_msgs
         self.hist_num_msgs = 0
 
-        if mode == CPP2PY_MODE_WIDGET:
+        if mode == PLOTMSG_MODE_WIDGET:
             if not inside_notebook():
                 # cannot runs in ipywidget mode
-                mode = CPP2PY_MODE_DEFAULT
+                mode = PLOTMSG_MODE_DEFAULT
 
-        if mode.startswith(CPP2PY_MODE_WIDGET):
-            mode = CPP2PY_MODE_WIDGET
+        if mode.startswith(PLOTMSG_MODE_WIDGET):
+            mode = PLOTMSG_MODE_WIDGET
             self._initialise_as_ipywidgets()
-            self.reciever = Cpp2PyReciever(
+            self.reciever = PlotMsgReciever(
                 address=address, ctx_mgr=self.ctx_mgr_info_label
             )
             self.goFigClass = go.FigureWidget
 
-        elif mode == CPP2PY_MODE_DEFAULT:
-            self.reciever = Cpp2PyReciever(address=address)
+        elif mode == PLOTMSG_MODE_DEFAULT:
+            self.reciever = PlotMsgReciever(address=address)
             self.ctx_mgr_chained = DummyCtxMgr
             self.ctx_mgr_pbar = DummyClass()
             self.goFigClass = go.Figure
@@ -470,7 +472,7 @@ class Cpp2PyPlotly:
         self.msgs[-1][0] = True
         # self.update_figure_widget(plotly_fig, uuid=uuid)
         self.add_figure_widget(plotly_fig, uuid=uuid)
-        if self.mode == CPP2PY_MODE_DEFAULT:
+        if self.mode == PLOTMSG_MODE_DEFAULT:
             plotly_fig.show()
 
     def spin_once(self, verbose=False):
@@ -493,7 +495,7 @@ class Cpp2PyPlotly:
 
     @ipywidget_mode(True)
     def spin_async(self, display_log=False):
-        if self.mode == CPP2PY_MODE_DEFAULT:
+        if self.mode == PLOTMSG_MODE_DEFAULT:
             return
         # default display log
         if display_log:
@@ -619,7 +621,7 @@ class Cpp2PyPlotly:
             options=[], value=[], description="Multi Fig(s)"
         )
         self.w_multi_fig_sel.options = self.figs.keys()
-        if self.mode == CPP2PY_MODE_WIDGET:
+        if self.mode == PLOTMSG_MODE_WIDGET:
             display(self.w_info_containers)
 
         @ipywidgets.interact(widget_names=self.w_multi_fig_sel)
@@ -635,7 +637,7 @@ class Cpp2PyPlotly:
             options=[], description="Show Fig"
         )
         self.w_single_fig_sel.options = self.figs.keys()
-        if self.mode == CPP2PY_MODE_WIDGET:
+        if self.mode == PLOTMSG_MODE_WIDGET:
             display(self.w_info_containers)
 
         @ipywidgets.interact(widget_names=self.w_single_fig_sel)

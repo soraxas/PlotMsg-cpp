@@ -12,23 +12,23 @@ add_dependencies(proto_plotmsg_cpp proto_plotmsg_py)
 # +-----------------------------------------------------------------------------
 
 target_include_directories(
-        proto_plotmsg_cpp PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+  proto_plotmsg_cpp PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 
 add_custom_command(
-        TARGET proto_plotmsg_py
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/msg_pb2.py
-        ${PYTHON_PKG_INSTALL_DIR}/cpp2py_plotly/msg_pb2.py)
+  TARGET proto_plotmsg_py
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/msg_pb2.py
+          ${PYTHON_PKG_INSTALL_DIR}/plotmsg_dash/msg_pb2.py)
 
 install(
-        TARGETS proto_plotmsg_cpp
-        EXPORT ${PROJECT_NAME}Targets
-        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
-        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR}
-        INCLUDES
-        DESTINATION ${INSTALL_INCLUDE_DIR})
+  TARGETS proto_plotmsg_cpp
+  EXPORT ${PROJECT_NAME}Targets
+  LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+  PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR}
+  INCLUDES
+  DESTINATION ${INSTALL_INCLUDE_DIR})
 
 export(
-        TARGETS proto_plotmsg_cpp
-        APPEND
-        FILE "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")
+  TARGETS proto_plotmsg_cpp
+  APPEND
+  FILE "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")
