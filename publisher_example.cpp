@@ -1,8 +1,8 @@
 #include <iostream>
 #include <numeric>
 
-#include "plotmsg.hpp"
-#include "plotmsg_template.hpp"
+#include "plotmsg/plotmsg.hpp"
+#include "plotmsg/template/core.hpp"
 
 #ifdef WITH_EIGEN
 #include <Eigen/Dense>

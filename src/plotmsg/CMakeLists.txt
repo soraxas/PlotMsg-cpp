@@ -1,6 +1,7 @@
 # Define lists of files
-set(SOURCE_FILES plotmsg.cpp)
-set(HEADER_FILES plotmsg.hpp plotmsg_template.hpp plotmsg_ompl.hpp)
+set(SOURCE_FILES plotmsg/plotmsg.cpp)
+set(HEADER_FILES plotmsg/plotmsg.hpp plotmsg/template/core.hpp
+                 plotmsg/template/ompl .hpp)
 set(LINK_LIBARARIES proto_plotmsg_cpp ${Protobuf_LIBRARIES} zmq
                     ${ZMQ_LIBRARIES})
 
