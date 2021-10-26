@@ -67,7 +67,7 @@ void Figure::send(zmq::send_flags send_flags) {
   auto _fig = m_msg.mutable_fig();
   _fig->set_uuid(m_uuid);
 
-  for (int i = 0; i < size(); ++i) {
+  for (uint i = 0; i < size(); ++i) {
     auto trace = _fig->add_traces();
     trace->mutable_kwargs()->Swap(m_traces[i].m_kwargs.release_ptr());
     trace->set_method(m_traces[i].m_method);
@@ -112,7 +112,7 @@ std::ostream &operator<<(std::ostream &out, Figure const &fig) {
   return out;
 }
 
-void Figure::set_trace_kwargs(int idx, Dictionary &value) {
+void Figure::set_trace_kwargs(uint idx, Dictionary &value) {
   if (idx >= size())
     throw std::out_of_range("Given index exceed the number of traces.");
   m_traces[idx].m_kwargs.set_kwargs(value);
@@ -144,7 +144,7 @@ Trace &Figure::trace(int idx) {
       throw std::out_of_range(
           "Given negative index exceed the number of traces.");
   }
-  if (idx >= size()) {
+  if (static_cast<uint>(idx) >= size()) {
     throw std::out_of_range("Given index exceed the number of traces.");
   }
   return m_traces[idx];

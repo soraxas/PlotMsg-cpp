@@ -1,15 +1,5 @@
 #pragma once
 
-#include <chrono>
-#include <iostream>
-#include <thread>
-
-#include <msg.pb.h>
-
-#include <utility>
-#include <zmq.hpp>
-
-
 #include "helpers.hpp"
 
 namespace PlotMsg {

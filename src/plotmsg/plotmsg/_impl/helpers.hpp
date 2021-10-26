@@ -1,20 +1,10 @@
 #pragma once
 
-#include <chrono>
-#include <iostream>
-#include <thread>
-
 #include <msg.pb.h>
-
-#include <utility>
-#include <zmq.hpp>
 
 namespace PlotMsg {
 
 using namespace PlotMsgProto;
-
-// easy alias
-using DictionaryMsgData = google::protobuf::Map<std::string, DictItemValMsg>;
 
 // forward declare
 class Dictionary;

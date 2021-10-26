@@ -2,7 +2,7 @@
 set(SOURCE_FILES plotmsg/plotmsg.cpp)
 set(HEADER_FILES
     plotmsg/main.hpp
-    plotmsg/_impl/misc.hpp
+    plotmsg/_impl/core.hpp
     plotmsg/_impl/dictionary.hpp
     plotmsg/_impl/figure.hpp
     plotmsg/_impl/trace.hpp

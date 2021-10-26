@@ -1,16 +1,7 @@
 #pragma once
 
-#include <chrono>
-#include <iostream>
-#include <thread>
-
-#include <msg.pb.h>
-
-#include <utility>
-#include <zmq.hpp>
-
-#include "trace.hpp"
 #include "helpers.hpp"
+#include "trace.hpp"
 
 namespace PlotMsg {
 
@@ -22,7 +13,7 @@ public:
 
   void set_uuid(const std::string &_uuid) { m_uuid = _uuid; }
 
-  void set_trace_kwargs(int idx, PlotMsg::Dictionary &value);
+  void set_trace_kwargs(uint idx, PlotMsg::Dictionary &value);
 
   void add_trace(Trace &trace) {
     _add_trace();
@@ -85,7 +76,7 @@ public:
 
   Trace &trace(int idx);
 
-  int size() const { return m_traces.size(); }
+  uint size() const { return m_traces.size(); }
 
   Trace get_trace_copy(int idx) const {
     Trace new_trace;
@@ -98,7 +89,7 @@ public:
 
   Figure copy() const {
     Figure new_fig;
-    for (int i = 0; i < size(); ++i)
+    for (uint i = 0; i < size(); ++i)
       new_fig.add_trace(get_trace_copy(i));
     return new_fig;
   }

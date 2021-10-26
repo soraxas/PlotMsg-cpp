@@ -1,20 +1,10 @@
 #pragma once
 
-#include <chrono>
-#include <iostream>
-#include <thread>
-
-#include <msg.pb.h>
-
-#include <utility>
-#include <zmq.hpp>
-
-#include "misc.hpp"
+#include "core.hpp"
 #include "helpers.hpp"
 #include "index_proxy_access.hpp"
 
 namespace PlotMsg {
-
 
 // class that represents dict representation in protobuf
 class Dictionary {
@@ -108,8 +98,7 @@ public:
 
   ///////////////////////////////////////////////////
 
-  friend std::ostream &operator<<(std::ostream &out,
-                                         Dictionary const &dict);
+  friend std::ostream &operator<<(std::ostream &out, Dictionary const &dict);
 
   void reset();
 
@@ -136,8 +125,7 @@ std::unique_ptr<Dictionary> Dictionary::deep_copy() const {
 void Dictionary::reset() { m_msg = std::make_unique<DictionaryMsg>(); }
 
 DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
-std::ostream &operator<<(std::ostream &out,
-                                Dictionary const &dict) {
+std::ostream &operator<<(std::ostream &out, Dictionary const &dict) {
   return out << (*dict.m_msg).data();
 }
 } // namespace PlotMsg
