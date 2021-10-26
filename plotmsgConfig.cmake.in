@@ -1,13 +1,13 @@
 # - Config file 
 # It defines the following variables
 # PLOTMSG_INCLUDE_DIRS - include directories
-# CPP2PY_PLOTLY_LIBRARIES    - libraries to link against
+# PLOTMSG_LIBRARIES    - libraries to link against
 # Compute paths
-get_filename_component(CPP2PY_PLOTLY_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(PLOTMSG_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 set(PLOTMSG_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
 # Our library dependencies (contains definitions for IMPORTED targets)
-if(NOT TARGET cpp2py_plotly AND NOT cpp2py_plotly_BINARY_DIR)
-    include("${CPP2PY_PLOTLY_CMAKE_DIR}/cpp2py_plotlyTargets.cmake")
+if(NOT TARGET plotmsg AND NOT plotmsg_BINARY_DIR)
+    include("${PLOTMSG_CMAKE_DIR}/plotmsgTargets.cmake")
 endif()
-# These are IMPORTED targets created by cpp2py_plotlyTargets.cmake
-set(CPP2PY_PLOTLY_LIBRARIES cpp2py_plotly)
+# These are IMPORTED targets created by plotmsgTargets.cmake
+set(PLOTMSG_LIBRARIES plotmsg)
