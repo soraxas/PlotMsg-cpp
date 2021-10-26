@@ -5,11 +5,11 @@ import setuptools
 long_description = ""
 
 setuptools.setup(
-    name="plotmsg",
+    name="plotmsg_dash",
     version="0.7.1",
     author="Tin Lai",
     author_email="oscar@tinyiu.com",
-    description="Rendering backend for ",
+    description="Rendering backend for PlotMsg from C++",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/pypa/sampleproject",
@@ -21,7 +21,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    package_dir={"": "plotmsg"},
-    packages=setuptools.find_packages(where="plotmsg"),
+    package_dir={"": "plotmsg_dash"},
+    packages=setuptools.find_packages(where="plotmsg_dash"),
     python_requires=">=3.6",
 )

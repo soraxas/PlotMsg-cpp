@@ -1,12 +1,21 @@
 # Define lists of files
 set(SOURCE_FILES plotmsg/plotmsg.cpp)
-set(HEADER_FILES plotmsg/plotmsg.hpp plotmsg/template/core.hpp
-                 plotmsg/template/ompl .hpp)
+set(HEADER_FILES
+    plotmsg/main.hpp
+    plotmsg/_impl/misc.hpp
+    plotmsg/_impl/dictionary.hpp
+    plotmsg/_impl/figure.hpp
+    plotmsg/_impl/trace.hpp
+    plotmsg/_impl/series_any.hpp
+    plotmsg/_impl/index_proxy_access.hpp
+    plotmsg/_impl/helpers.hpp
+    plotmsg/template/core.hpp
+    plotmsg/template/ompl.hpp)
 set(LINK_LIBARARIES proto_plotmsg_cpp ${Protobuf_LIBRARIES} zmq
                     ${ZMQ_LIBRARIES})
 
 # Build library
-add_library(plotmsg ${SOURCE_FILES})
+add_library(plotmsg ${SOURCE_FILES} ${HEADER_FILES})
 target_link_libraries(plotmsg ${LINK_LIBARARIES})
 
 target_include_directories(

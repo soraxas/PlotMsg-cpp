@@ -1,6 +1,6 @@
 #pragma once
 
-#include "plotmsg.hpp"
+#include "plotmsg/main.hpp"
 
 /*
  * Implements tempalte message for easy usage

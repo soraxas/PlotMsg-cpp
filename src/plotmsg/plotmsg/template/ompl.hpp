@@ -1,3 +1,6 @@
+#pragma once
+
+#include "plotmsg/main.hpp"
 #include <ompl/base/PlannerData.h>
 
 namespace Plotly {
@@ -6,7 +9,6 @@ namespace OmplTemplate {
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
-template <typename StateType>
 void plot_planner_data_graph(Plotly::Figure &fig, const ob::PlannerData &data) {
   // plot all edges
   std::vector<std::pair<double, double>> xs_e;

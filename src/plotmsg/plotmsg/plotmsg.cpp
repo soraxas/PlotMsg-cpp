@@ -1,4 +1,5 @@
-#include "plotmsg.hpp"
+
+#include "plotmsg/main.hpp"
 
 namespace PlotMsg {
 
@@ -15,20 +16,6 @@ void initialise_publisher(int sleep_after_bind, const std::string &addr) {
 ////////////////////////////////////////
 // implementation of Dictionary
 ////////////////////////////////////////
-
-void Dictionary::add_kwargs(
-    PlotMsg::Dictionary::DictionaryItemPair &value) const {
-  (*m_msg->mutable_data())[value.m_key].Swap(&value.m_item_val);
-}
-
-void Dictionary::set_kwargs(PlotMsg::Dictionary &&value) const {
-  Dictionary lvalue(value);
-  set_kwargs(lvalue);
-}
-
-void Dictionary::set_kwargs(PlotMsg::Dictionary &value) const {
-  m_msg->mutable_data()->swap(*value.m_msg->mutable_data());
-}
 
 void _deep_copy_helper(const DictionaryMsgData &ori_dict,
                        DictionaryMsgData &new_dict) {
@@ -68,20 +55,6 @@ void _deep_copy_helper(const DictionaryMsgData &ori_dict,
           std::to_string(static_cast<int>(itemVal.value_case())));
     };
   }
-}
-
-std::unique_ptr<Dictionary> Dictionary::deep_copy() const {
-  Dictionary dict;
-  _deep_copy_helper(m_msg->data(), *dict.m_msg->mutable_data());
-  return std::make_unique<Dictionary>(dict);
-}
-
-void Dictionary::reset() { m_msg = std::make_unique<DictionaryMsg>(); }
-
-DictionaryMsg *Dictionary::release_ptr() { return m_msg.release(); }
-
-std::ostream &operator<<(std::ostream &out, Dictionary const &dict) {
-  return out << (*dict.m_msg).data();
 }
 
 ////////////////////////////////////////

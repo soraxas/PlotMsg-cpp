@@ -1,7 +1,7 @@
 #include <iostream>
 #include <numeric>
 
-#include "plotmsg/plotmsg.hpp"
+#include "plotmsg/main.hpp"
 #include "plotmsg/template/core.hpp"
 
 #ifdef WITH_EIGEN
