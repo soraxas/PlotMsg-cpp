@@ -110,13 +110,13 @@ class PlotMsgReciever:
                 return out
             elif inputs_t in (bool, str, float, int):
                 return inputs
-            elif inputs_t == msg_pb2.Trace:
+            elif inputs_t == msg_pb2.PlotlyTrace:
                 return dict(
-                    method=msg_pb2.Trace.CreationMethods.Name(inputs.method),
+                    method=msg_pb2.PlotlyTrace.CreationMethods.Name(inputs.method),
                     func=inputs.method_func,
                     kwargs=unpack(inputs.kwargs),
                 )
-            elif inputs_t == msg_pb2.Figure:
+            elif inputs_t == msg_pb2.PlotlyFigureMsg:
                 return dict(
                     uuid=inputs.uuid,
                     traces=[unpack(t) for t in inputs.traces],
@@ -522,16 +522,18 @@ class PlotMsgPlotly:
                 widget.options = self.figs.keys()
                 # store current selection, unset then set to force refresh
                 prev_sel = widget.value
-                if type(widget) is ipywidgets.widgets.widget_selection.SelectMultiple:
-                    widget.value = []
-                elif type(widget) is ipywidgets.widgets.widget_selection.Dropdown:
-                    widget.value = None
                 if prev_sel not in widget.options:
                     prev_sel = None  # not exists anymore
                     if len(widget.options) > 0:
                         prev_sel = widget.options[0]  # default to first item
-                if prev_sel:
-                    widget.value = prev_sel
+                if type(widget) is ipywidgets.widgets.widget_selection.SelectMultiple:
+                    widget.value = []
+                    if prev_sel:
+                        widget.value = [prev_sel]
+                elif type(widget) is ipywidgets.widgets.widget_selection.Dropdown:
+                    widget.value = None
+                    if prev_sel:
+                        widget.value = prev_sel
 
     @ipywidget_mode(True)
     def remove_figure_widget(self, uuids):

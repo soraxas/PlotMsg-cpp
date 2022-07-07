@@ -1,5 +1,5 @@
-import lib.cpp2py_plotly as cpp2py_plotly
+from plotmsg_dash import PlotMsgPlotly
 
-sub = cpp2py_plotly.Cpp2PyPlotly()
+sub = PlotMsgPlotly()
 sub.initialise()
 sub.spin()
