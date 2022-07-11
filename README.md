@@ -39,15 +39,18 @@ target_link_libraries( ${MY_TARGET} plotmsg )
 Say you have something like this in your `${MY_TARGET}`
 
 ```cpp
-#include "plotmsg.hpp"
+#include "plotmsg/main.hpp"
+#include "plotmsg/template/core.hpp"
 
 int main(int argc, char const *argv[]) {
   PlotMsg::Figure fig;
   std::vector<double> x{1, 2, 3, 4, 5, 6, 7};
   std::vector<double> y{1, 2, 3, 2, 3, 4, 5};
 
-  fig.add_kwargs("x", x);
-  fig.add_kwargs("y", y);
+  auto trace = PlotMsg::TraceTemplate::scatter(x, y);
+  trace["mode"] = "lines";
+
+  fig.add_trace(trace);
 
   fig.send();
 }
@@ -65,11 +68,15 @@ to build your C++ project.
 You can then, for example, start the python subscriber with
 
 ```sh
-ipython -i lib/plotmsg.py
+ipython
 ```
 
 ```python
-sub = Cpp2PyPlotly()
+import sys; sys.path.insert(0, "built_python_pkg")
+
+from plotmsg_dash import PlotMsgPlotly
+
+sub = PlotMsgPlotly()
 sub.initialise()
 sub.spin()
 ```
