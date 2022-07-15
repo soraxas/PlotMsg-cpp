@@ -15,12 +15,15 @@ namespace PlotMsg
         /*
          * Assume the given path have a 2-dimensional state
          * */
-        template <typename StateType>
+        template <typename StateType, int StateDimNum>
         void plot_planner_data_graph(PlotMsg::Figure &fig, const ob::PlannerData &data)
         {
+            static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
+
             // plot all edges
-            std::vector<std::pair<double, double>> xs_e;
-            std::vector<std::pair<double, double>> ys_e;
+            std::vector<std::vector<std::pair<double, double>>> all_edges;
+            all_edges.resize(StateDimNum);
+
             std::vector<unsigned int> edgesList;
             for (uint i = 0; i < data.numVertices(); ++i)
             {
@@ -31,42 +34,51 @@ namespace PlotMsg
                 {
                     const auto &v2 = data.getVertex(j);
                     auto v2_pos = v2.getState()->as<StateType>()->values;
-                    xs_e.emplace_back(v1_pos[0], v2_pos[0]);
-                    ys_e.emplace_back(v1_pos[1], v2_pos[1]);
+                    for (int d = 0; d < StateDimNum; ++d)
+                    {
+                        all_edges[d].emplace_back(v1_pos[d], v2_pos[d]);
+                    }
                 }
             }
-            fig.add_trace(PlotMsg::TraceTemplate::edges(xs_e, ys_e));
+            fig.add_trace(PlotMsg::TraceTemplate::edges<StateDimNum>(all_edges));
             fig.get_trace(-1)["name"] = "graph";
 
             // plot start/target
-            std::vector<double> xs;
-            std::vector<double> ys;
+            std::vector<std::vector<double>> xs_across_dim;
+            xs_across_dim.resize(StateDimNum);
             std::vector<std::string> cs;
+
             for (uint i = 0; i < data.numStartVertices(); ++i)
             {
                 auto v_pos = data.getStartVertex(i).getState()->as<StateType>()->values;
-                xs.push_back(v_pos[0]);
-                ys.push_back(v_pos[1]);
+                for (int d = 0; d < StateDimNum; ++d)
+                {
+                    xs_across_dim[d].push_back(v_pos[d]);
+                }
                 cs.emplace_back("green");
             }
             for (uint i = 0; i < data.numGoalVertices(); ++i)
             {
                 auto v_pos = data.getGoalVertex(i).getState()->as<StateType>()->values;
-                xs.push_back(v_pos[0]);
-                ys.push_back(v_pos[1]);
+                for (int d = 0; d < StateDimNum; ++d)
+                {
+                    xs_across_dim[d].push_back(v_pos[d]);
+                }
                 cs.emplace_back("red");
             }
-            fig.add_trace(PlotMsg::TraceTemplate::vertices(xs, ys, cs));
+            fig.add_trace(PlotMsg::TraceTemplate::vertices_with_colour<2, double, std::string>(xs_across_dim, cs));
             fig.get_trace(-1)["showlegend"] = false;
         }
 
         /*
          * Assume the given path have a 2-dimensional state
          * */
-        template <typename StateType>
+        template <typename StateType, int StateDimNum>
         void plot_path(PlotMsg::Figure &fig, const og::PathGeometric &path, std::string colour = "blue",
                        std::string name = "solution")
         {
+            static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
+
             assert(path.getState(0)->as<StateType>()->getDimension() == 2);
             std::vector<double> xs, ys;
             for (uint i = 0; i < path.getStateCount(); ++i)

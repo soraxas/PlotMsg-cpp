@@ -99,6 +99,10 @@ namespace PlotMsg
 
         void add_kwargs(DictionaryItemPair &value) const;
 
+        void update_kwargs(Dictionary &value) const;
+
+        void update_kwargs(Dictionary &&value) const;
+
         // directly set kwargs
         void set_kwargs(Dictionary &value) const;
 
@@ -125,6 +129,22 @@ namespace PlotMsg
     void Dictionary::add_kwargs(Dictionary::DictionaryItemPair &value) const
     {
         (*m_msg->mutable_data())[value.m_key].Swap(&value.m_item_val);
+    }
+    void Dictionary::update_kwargs(Dictionary &&value) const
+    {
+        Dictionary lvalue(value);
+        update_kwargs(lvalue);
+    }
+    /**
+     * Like Python's dictionary update function.
+     * @param value
+     */
+    void Dictionary::update_kwargs(Dictionary &value) const
+    {
+        for (auto &kv_pair : (*value.m_msg->mutable_data()))
+        {
+            (*m_msg->mutable_data())[kv_pair.first].Swap(&kv_pair.second);
+        }
     }
     void Dictionary::set_kwargs(Dictionary &&value) const
     {

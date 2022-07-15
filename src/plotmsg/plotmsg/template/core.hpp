@@ -26,13 +26,50 @@ namespace PlotMsg
             );
         }
 
-        template <typename T1, typename T2>
-        PlotMsg::Trace scatter(std::vector<T1> &x, std::vector<T2> &y)
+        template <typename T>
+        PlotMsg::Trace scatter(const std::vector<T> &x, const std::vector<T> &y)
         {
             PlotMsg::Trace trace = scatter();
             trace["x"] = x;
             trace["y"] = y;
             return trace;
+        }
+
+        template <typename T>
+        PlotMsg::Trace scatter(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z)
+        {
+            return PlotMsg::Trace(PlotMsg::PlotlyTrace::plotly_express,  //
+                                  "scatter_3d",                          //
+                                  PlotMsg::Dictionary(                   //
+                                      "x", x,                            //
+                                      "y", y,                            //
+                                      "z", z                             //
+                                      )                                  //
+            );
+        }
+
+        template <unsigned int StateDimNum, typename T>
+        PlotMsg::Trace scatter(const std::vector<std::vector<T>> &points_across_dim)
+        {
+            static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
+
+            if (StateDimNum == 2)
+                return scatter(points_across_dim[0], points_across_dim[1]);
+            else if (StateDimNum == 3)
+                return scatter(points_across_dim[0], points_across_dim[1], points_across_dim[2]);
+        }
+
+        template <typename T1, typename T2, typename T3>
+        PlotMsg::Trace line3d(std::vector<T1> &x, std::vector<T2> &y, std::vector<T3> &z)
+        {
+            return PlotMsg::Trace(PlotMsg::PlotlyTrace::plotly_express,  //
+                                  "line_3d",                             //
+                                  PlotMsg::Dictionary(                   //
+                                      "x", x,                            //
+                                      "y", y,                            //
+                                      "z", z                             //
+                                      )                                  //
+            );
         }
 
         template <typename T1, typename T2>
@@ -97,6 +134,7 @@ namespace PlotMsg
                                       "z", c            //
                                       ));
         }
+
         /**
          * Plot the given list of edges
          * @tparam T data type of the container (should be able to infer this)
@@ -105,7 +143,7 @@ namespace PlotMsg
          *        data point (1,5) connects to (2,6) and (3, 7) connects to (4,8)
          * @return a trace that contain the formatted edges
          */
-        template <int StateDimNum, typename T>
+        template <unsigned int StateDimNum, typename T>
         PlotMsg::Trace edges(const std::vector<std::vector<std::pair<T, T>>> &pair_of_edges_across_dim)
         {
             static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
@@ -129,25 +167,23 @@ namespace PlotMsg
                     seriesAny_vector_push_back(edge_series[d], PlotMsg::NullValue);
                 }
             }
-            auto dict = PlotMsg::Dictionary(  //
-                "line_width", 0.5,            //
-                "line_color", "#888",         //
-                "hoverinfo", "none",          //
-                "mode", "lines"               //
-            );
+
+            PlotMsg::Trace trace;
             if (StateDimNum == 2)
             {
-                dict["x"] = edge_series[0];
-                dict["y"] = edge_series[1];
+                trace = scatter(edge_series[0], edge_series[1]);
             }
             else if (StateDimNum == 3)
             {
-                dict["x"] = edge_series[0];
-                dict["y"] = edge_series[1];
-                dict["z"] = edge_series[2];
+                trace = scatter(edge_series[0], edge_series[1], edge_series[2]);
             }
-
-            return PlotMsg::Trace(PlotlyTrace::graph_objects, "Scatter", dict);
+            trace.m_kwargs.update_kwargs(PlotMsg::Dictionary(  //
+                "line_width", 0.5,                             //
+                "line_color", "#888",                          //
+                "hoverinfo", "none",                           //
+                "mode", "lines"                                //
+                ));
+            return trace;
         }
 
         template <typename T>
@@ -156,34 +192,62 @@ namespace PlotMsg
             return edges<2, T>({x, y});
         }
 
-        template <typename T>
-        PlotMsg::Trace vertices(std::vector<T> &x, std::vector<T> &y)
+        /**
+         * Plot the given list of nodes
+         * @tparam T data type of the container (should be able to infer this)
+         * @param nodes_across_dim a list of d-dimensional pair of edges. E.g.,
+         *        [x~[[1, 2], [3, 4]], y~[[5, 6], [7, 8]]] represents a 2D node list with
+         *        data point (1,5) connects to (2,6) and (3, 7) connects to (4,8)
+         * @return a trace that contain the formatted edges
+         */
+        template <unsigned int StateDimNum, typename T>
+        PlotMsg::Trace vertices(const std::vector<std::vector<T>> &nodes_across_dim)
         {
-            return PlotMsg::Trace(PlotlyTrace::graph_objects, "Scatter",
-                                  PlotMsg::Dictionary(                     //
-                                      "x", x,                              //
-                                      "y", y,                              //
-                                      "mode", "markers",                   //
-                                      "hoverinfo", "text",                 //
-                                      "marker_showscale", true,            //
-                                      "marker_colorscale", "YlGnBu",       //
-                                      "marker_reversescale", true,         //
-                                      "marker_color", std::vector<int>(),  // why?
-                                      "marker_size", 10,                   //
-                                      "marker_line_width", 2               //
-                                      ));
+            static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
+
+            auto trace = scatter<StateDimNum, T>(nodes_across_dim);
+            trace.m_kwargs.update_kwargs(                //
+                PlotMsg::Dictionary(                     //
+                    "mode", "markers",                   //
+                    "hoverinfo", "text",                 //
+                    "marker_showscale", true,            //
+                    "marker_colorscale", "YlGnBu",       //
+                    "marker_reversescale", true,         //
+                    "marker_color", std::vector<int>(),  // why?
+                    "marker_size", 10,                   //
+                    "marker_line_width", 2               //
+                    ));
+            return trace;
+        }
+
+        template <typename T>
+        PlotMsg::Trace vertices(const std::vector<T> &x, const std::vector<T> &y)
+        {
+            return vertices<2>({x, y});
+        }
+
+        template <unsigned int StateDimNum, typename T1, typename T2>
+        PlotMsg::Trace vertices_with_colour(const std::vector<std::vector<T1>> &nodes_across_dim,
+                                            const std::vector<T2> &c)
+        {
+            auto trace = vertices<StateDimNum, T1>(nodes_across_dim);
+            auto overriding_dict = PlotMsg::Dictionary(       //
+                "marker_color", c,                            //
+                "marker_colorbar_thickness", 15,              //
+                "marker_colorbar_title", "Node Connections",  //
+                "marker_colorbar_xanchor", "left",            //
+                "marker_colorbar_titleside", "right"          //
+
+            );
+            trace.m_kwargs.update_kwargs(overriding_dict);
+            return trace;
         }
 
         template <typename T1, typename T2>
-        PlotMsg::Trace vertices(std::vector<T1> &x, std::vector<T1> &y, std::vector<T2> &c)
+        PlotMsg::Trace vertices_with_colour(const std::vector<T1> &x, const std::vector<T1> &y,
+                                            const std::vector<T2> &c)
         {
-            auto trace = vertices(x, y);
-            trace["marker_color"] = c;
-            trace["marker"]["colorbar"]["thickness"] = 15;
-            trace["marker"]["colorbar"]["title"] = "Node Connections";
-            trace["marker"]["colorbar"]["xanchor"] = "left";
-            trace["marker"]["colorbar"]["titleside"] = "right";
-            return trace;
+            return vertices_with_colour<2, T1, T2>({x, y}, c);
         }
 
     }  // namespace TraceTemplate
