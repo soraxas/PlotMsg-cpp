@@ -97,32 +97,63 @@ namespace PlotMsg
                                       "z", c            //
                                       ));
         }
+        /**
+         * Plot the given list of edges
+         * @tparam T data type of the container (should be able to infer this)
+         * @param pair_of_edges_across_dim a list of d-dimensional pair of edges. E.g.,
+         *        [x~[[1, 2], [3, 4]], y~[[5, 6], [7, 8]]] represents a 2D edge list with
+         *        data point (1,5) connects to (2,6) and (3, 7) connects to (4,8)
+         * @return a trace that contain the formatted edges
+         */
+        template <int StateDimNum, typename T>
+        PlotMsg::Trace edges(const std::vector<std::vector<std::pair<T, T>>> &pair_of_edges_across_dim)
+        {
+            static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
+
+            // x's size is used as the final size
+            size_t _reference_size = pair_of_edges_across_dim[0].size();
+
+            std::vector<std::vector<SeriesAnyMsg_value>> edge_series;
+            edge_series.resize(StateDimNum);
+            for (int d = 0; d < StateDimNum; ++d)
+            {
+                edge_series[d].reserve(_reference_size);
+            }
+
+            for (uint i = 0; i < _reference_size; ++i)
+            {
+                for (int d = 0; d < StateDimNum; ++d)
+                {
+                    seriesAny_vector_push_back(edge_series[d], pair_of_edges_across_dim[d][i].first);
+                    seriesAny_vector_push_back(edge_series[d], pair_of_edges_across_dim[d][i].second);
+                    seriesAny_vector_push_back(edge_series[d], PlotMsg::NullValue);
+                }
+            }
+            auto dict = PlotMsg::Dictionary(  //
+                "line_width", 0.5,            //
+                "line_color", "#888",         //
+                "hoverinfo", "none",          //
+                "mode", "lines"               //
+            );
+            if (StateDimNum == 2)
+            {
+                dict["x"] = edge_series[0];
+                dict["y"] = edge_series[1];
+            }
+            else if (StateDimNum == 3)
+            {
+                dict["x"] = edge_series[0];
+                dict["y"] = edge_series[1];
+                dict["z"] = edge_series[2];
+            }
+
+            return PlotMsg::Trace(PlotlyTrace::graph_objects, "Scatter", dict);
+        }
 
         template <typename T>
-        PlotMsg::Trace edges(std::vector<std::pair<T, T>> &x, std::vector<std::pair<T, T>> &y)
+        PlotMsg::Trace edges(const std::vector<std::pair<T, T>> &x, const std::vector<std::pair<T, T>> &y)
         {
-            // x's size is used as the final size
-            std::vector<SeriesAnyMsg_value> edge_x, edge_y;
-            edge_x.reserve(x.size());
-            edge_y.reserve(x.size());
-            for (uint i = 0; i < x.size(); ++i)
-            {
-                seriesAny_vector_push_back(edge_x, x[i].first);
-                seriesAny_vector_push_back(edge_x, x[i].second);
-                seriesAny_vector_push_back(edge_x, PlotMsg::NullValue);
-                seriesAny_vector_push_back(edge_y, y[i].first);
-                seriesAny_vector_push_back(edge_y, y[i].second);
-                seriesAny_vector_push_back(edge_y, PlotMsg::NullValue);
-            }
-            return PlotMsg::Trace(PlotlyTrace::graph_objects, "Scatter",
-                                  PlotMsg::Dictionary(       //
-                                      "x", edge_x,           //
-                                      "y", edge_y,           //
-                                      "line_width", 0.5,     //
-                                      "line_color", "#888",  //
-                                      "hoverinfo", "none",   //
-                                      "mode", "lines"        //
-                                      ));
+            return edges<2, T>({x, y});
         }
 
         template <typename T>
