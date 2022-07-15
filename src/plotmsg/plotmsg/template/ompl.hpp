@@ -1,15 +1,19 @@
 #pragma once
 
-#include "plotmsg/main.hpp"
+#include "plotmsg/template/core.hpp"
 #include <ompl/base/PlannerData.h>
 
-namespace Plotly {
+namespace PlotMsg {
 namespace OmplTemplate {
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
-void plot_planner_data_graph(Plotly::Figure &fig, const ob::PlannerData &data) {
+/*
+ * Assume the given path have a 2-dimensional state
+ * */
+template <typename StateType>
+void plot_planner_data_graph(PlotMsg::Figure &fig, const ob::PlannerData &data) {
   // plot all edges
   std::vector<std::pair<double, double>> xs_e;
   std::vector<std::pair<double, double>> ys_e;
@@ -25,7 +29,7 @@ void plot_planner_data_graph(Plotly::Figure &fig, const ob::PlannerData &data) {
       ys_e.emplace_back(v1_pos[1], v2_pos[1]);
     }
   }
-  fig.add_trace(Plotly::TraceTemplate::edges(xs_e, ys_e));
+  fig.add_trace(PlotMsg::TraceTemplate::edges(xs_e, ys_e));
   fig.get_trace(-1)["name"] = "graph";
 
   // plot start/target
@@ -44,7 +48,7 @@ void plot_planner_data_graph(Plotly::Figure &fig, const ob::PlannerData &data) {
     ys.push_back(v_pos[1]);
     cs.emplace_back("red");
   }
-  fig.add_trace(Plotly::TraceTemplate::vertices(xs, ys, cs));
+  fig.add_trace(PlotMsg::TraceTemplate::vertices(xs, ys, cs));
   fig.get_trace(-1)["showlegend"] = false;
 }
 
@@ -52,7 +56,7 @@ void plot_planner_data_graph(Plotly::Figure &fig, const ob::PlannerData &data) {
  * Assume the given path have a 2-dimensional state
  * */
 template <typename StateType>
-void plot_path(Plotly::Figure &fig, const og::PathGeometric &path,
+void plot_path(PlotMsg::Figure &fig, const og::PathGeometric &path,
                std::string colour = "blue", std::string name = "solution") {
   assert(path.getState(0)->as<StateType>()->getDimension() == 2);
   std::vector<double> xs, ys;
@@ -61,7 +65,7 @@ void plot_path(Plotly::Figure &fig, const og::PathGeometric &path,
     xs.push_back(pos[0]);
     ys.push_back(pos[1]);
   }
-  auto trace = Plotly::TraceTemplate::scatter(xs, ys);
+  auto trace = PlotMsg::TraceTemplate::scatter(xs, ys);
   trace["name"] = name;
   trace["mode"] = "lines";
   trace["line_width"] = 1.5;
@@ -71,4 +75,4 @@ void plot_path(Plotly::Figure &fig, const og::PathGeometric &path,
 }
 
 } // namespace OmplTemplate
-} // namespace Plotly
+} // namespace PlotMsg
