@@ -38,13 +38,13 @@ namespace PlotMsg
         template <typename T>
         PlotMsg::Trace scatter(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z)
         {
-            return PlotMsg::Trace(PlotMsg::PlotlyTrace::plotly_express,  //
-                                  "scatter_3d",                          //
-                                  PlotMsg::Dictionary(                   //
-                                      "x", x,                            //
-                                      "y", y,                            //
-                                      "z", z                             //
-                                      )                                  //
+            return PlotMsg::Trace(PlotlyTrace::graph_objects,  //
+                                  "Scatter3d",                 //
+                                  PlotMsg::Dictionary(         //
+                                      "x", x,                  //
+                                      "y", y,                  //
+                                      "z", z                   //
+                                      )                        //
             );
         }
 
@@ -57,19 +57,6 @@ namespace PlotMsg
                 return scatter(points_across_dim[0], points_across_dim[1]);
             else if (StateDimNum == 3)
                 return scatter(points_across_dim[0], points_across_dim[1], points_across_dim[2]);
-        }
-
-        template <typename T1, typename T2, typename T3>
-        PlotMsg::Trace line3d(std::vector<T1> &x, std::vector<T2> &y, std::vector<T3> &z)
-        {
-            return PlotMsg::Trace(PlotMsg::PlotlyTrace::plotly_express,  //
-                                  "line_3d",                             //
-                                  PlotMsg::Dictionary(                   //
-                                      "x", x,                            //
-                                      "y", y,                            //
-                                      "z", z                             //
-                                      )                                  //
-            );
         }
 
         template <typename T1, typename T2>
@@ -243,12 +230,12 @@ namespace PlotMsg
             return trace;
         }
 
-        template <typename T1, typename T2>
-        PlotMsg::Trace vertices_with_colour(const std::vector<T1> &x, const std::vector<T1> &y,
-                                            const std::vector<T2> &c)
-        {
-            return vertices_with_colour<2, T1, T2>({x, y}, c);
-        }
+        //        template <typename T1, typename T2>
+        //        PlotMsg::Trace vertices_with_colour(const std::vector<T1> &x, const std::vector<T1> &y,
+        //                                            const std::vector<T2> &c)
+        //        {
+        //            return vertices_with_colour<2, T1, T2>({x, y}, c);
+        //        }
 
     }  // namespace TraceTemplate
 

@@ -13,13 +13,18 @@ namespace PlotMsg
         namespace og = ompl::geometric;
 
         /*
-         * Assume the given path have a 2-dimensional state
-         * */
+         * Assume the given path have a 2/3-dimensional state
+         *
+         * ob::PlannerData pdata(si);
+         * optimizingPlanner->getPlannerData(pdata);
+         *
+         * PlotMsg::Figure fig;
+         * PlotMsg::OmplTemplate::plot_planner_data_graph<ob::RealVectorStateSpace::StateType, 3>(fig, pdata);
+         *
+         */
         template <typename StateType, int StateDimNum>
         void plot_planner_data_graph(PlotMsg::Figure &fig, const ob::PlannerData &data)
         {
-            static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
-
             // plot all edges
             std::vector<std::vector<std::pair<double, double>>> all_edges;
             all_edges.resize(StateDimNum);
@@ -66,7 +71,8 @@ namespace PlotMsg
                 }
                 cs.emplace_back("red");
             }
-            fig.add_trace(PlotMsg::TraceTemplate::vertices_with_colour<2, double, std::string>(xs_across_dim, cs));
+            fig.add_trace(
+                PlotMsg::TraceTemplate::vertices_with_colour<StateDimNum, double, std::string>(xs_across_dim, cs));
             fig.get_trace(-1)["showlegend"] = false;
         }
 
@@ -77,17 +83,19 @@ namespace PlotMsg
         void plot_path(PlotMsg::Figure &fig, const og::PathGeometric &path, std::string colour = "blue",
                        std::string name = "solution")
         {
-            static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
+            std::vector<std::vector<double>> xs_across_dim;
+            xs_across_dim.resize(StateDimNum);
+            std::vector<std::string> cs;
 
-            assert(path.getState(0)->as<StateType>()->getDimension() == 2);
-            std::vector<double> xs, ys;
             for (uint i = 0; i < path.getStateCount(); ++i)
             {
                 auto pos = path.getState(i)->as<StateType>()->values;
-                xs.push_back(pos[0]);
-                ys.push_back(pos[1]);
+                for (int d = 0; d < StateDimNum; ++d)
+                {
+                    xs_across_dim[d].push_back(pos[d]);
+                }
             }
-            auto trace = PlotMsg::TraceTemplate::scatter(xs, ys);
+            auto trace = PlotMsg::TraceTemplate::scatter<StateDimNum>(xs_across_dim);
             trace["name"] = name;
             trace["mode"] = "lines";
             trace["line_width"] = 1.5;
