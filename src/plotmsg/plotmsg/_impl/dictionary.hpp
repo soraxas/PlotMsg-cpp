@@ -126,15 +126,18 @@ namespace PlotMsg
         // variables
         std::unique_ptr<DictionaryMsg> m_msg;
     };
+
     void Dictionary::add_kwargs(Dictionary::DictionaryItemPair &value) const
     {
         (*m_msg->mutable_data())[value.m_key].Swap(&value.m_item_val);
     }
+
     void Dictionary::update_kwargs(Dictionary &&value) const
     {
         Dictionary lvalue(value);
         update_kwargs(lvalue);
     }
+
     /**
      * Like Python's dictionary update function.
      * @param value
@@ -146,21 +149,25 @@ namespace PlotMsg
             (*m_msg->mutable_data())[kv_pair.first].Swap(&kv_pair.second);
         }
     }
+
     void Dictionary::set_kwargs(Dictionary &&value) const
     {
         Dictionary lvalue(value);
         set_kwargs(lvalue);
     }
+
     void Dictionary::set_kwargs(Dictionary &value) const
     {
         m_msg->mutable_data()->swap(*value.m_msg->mutable_data());
     }
+
     std::unique_ptr<Dictionary> Dictionary::deep_copy() const
     {
         Dictionary dict;
         _deep_copy_helper(m_msg->data(), *dict.m_msg->mutable_data());
         return std::make_unique<Dictionary>(dict);
     }
+
     void Dictionary::reset()
     {
         m_msg = std::make_unique<DictionaryMsg>();
@@ -170,6 +177,7 @@ namespace PlotMsg
     {
         return m_msg.release();
     }
+
     std::ostream &operator<<(std::ostream &out, Dictionary const &dict)
     {
         return out << (*dict.m_msg).data();

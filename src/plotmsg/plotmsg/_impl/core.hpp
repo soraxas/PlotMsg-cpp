@@ -1,7 +1,6 @@
 #pragma once
 
 #include <msg.pb.h>
-
 #include <zmq.hpp>
 
 #define PLOTMSG_DEFAULT_ADDR "tcp://127.0.0.1:5557"
@@ -24,7 +23,9 @@ namespace PlotMsg
     INLINE std::unique_ptr<zmq::socket_t> static_publisher;
 
     // static functions
-    void initialise_publisher(int sleep_after_bind = 1000, const std::string &addr = PLOTMSG_DEFAULT_ADDR);
+    void initialise_publisher(
+        int sleep_after_bind = 1000, const std::string &addr = PLOTMSG_DEFAULT_ADDR
+    );
 
     std::ostream &operator<<(std::ostream &out, DictionaryMsgData const &dict);
 

@@ -14,15 +14,15 @@ namespace PlotMsg
 
         PlotMsg::Trace scatter()
         {
-            return PlotMsg::Trace(  //
-                PlotlyTrace::graph_objects, "Scatter",
+            return PlotMsg::Trace(                       //
+                PlotlyTrace::graph_objects, "Scatter",   //
                 PlotMsg::Dictionary(                     //
                     "mode", "markers",                   //
                     "marker_size", 10,                   //
-                                                         //          "marker_opacity", 0.9,              //
+                                                         // "marker_opacity", 0.9,
                     "marker_colorscale", "Viridis",      //
                     "marker_colorbar_title", "Colorbar"  //
-                    )                                    //
+                )                                        //
             );
         }
 
@@ -36,15 +36,17 @@ namespace PlotMsg
         }
 
         template <typename T>
-        PlotMsg::Trace scatter(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z)
+        PlotMsg::Trace
+        scatter(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z)
         {
-            return PlotMsg::Trace(PlotlyTrace::graph_objects,  //
-                                  "Scatter3d",                 //
-                                  PlotMsg::Dictionary(         //
-                                      "x", x,                  //
-                                      "y", y,                  //
-                                      "z", z                   //
-                                      )                        //
+            return PlotMsg::Trace(
+                PlotlyTrace::graph_objects,  //
+                "Scatter3d",                 //
+                PlotMsg::Dictionary(         //
+                    "x", x,                  //
+                    "y", y,                  //
+                    "z", z                   //
+                )                            //
             );
         }
 
@@ -60,7 +62,8 @@ namespace PlotMsg
         }
 
         template <typename T1, typename T2>
-        PlotMsg::Trace scatter_with_colour(std::vector<T1> &x, std::vector<T1> &y, std::vector<T2> &c)
+        PlotMsg::Trace
+        scatter_with_colour(std::vector<T1> &x, std::vector<T1> &y, std::vector<T2> &c)
         {
             PlotMsg::Trace trace = scatter(x, y);
             trace["marker_color"] = c;
@@ -68,20 +71,24 @@ namespace PlotMsg
         }
 
         template <typename T>
-        PlotMsg::Trace vector_field(std::vector<T> &x, std::vector<T> &y, std::vector<T> &u, std::vector<T> &v)
+        PlotMsg::Trace
+        vector_field(std::vector<T> &x, std::vector<T> &y, std::vector<T> &u, std::vector<T> &v)
         {
-            return PlotMsg::Trace(PlotlyTrace::figure_factory, "create_quiver",
-                                  PlotMsg::Dictionary(    //
-                                      "x", x,             //
-                                      "y", y,             //
-                                      "u", u,             //
-                                      "v", v,             //
-                                      "scale", .25,       //
-                                      "arrow_scale", .4,  //
-                                      "name", "quiver",   //
-                                      "line_width", 1     //
-                                      ));
+            return PlotMsg::Trace(
+                PlotlyTrace::figure_factory, "create_quiver",
+                PlotMsg::Dictionary(    //
+                    "x", x,             //
+                    "y", y,             //
+                    "u", u,             //
+                    "v", v,             //
+                    "scale", .25,       //
+                    "arrow_scale", .4,  //
+                    "name", "quiver",   //
+                    "line_width", 1     //
+                )
+            );
         }
+
         // alias of vector field
         template <typename... T>
         PlotMsg::Trace quiver(T... args)
@@ -90,8 +97,10 @@ namespace PlotMsg
         }
 
         template <typename T>
-        PlotMsg::Trace contour(std::vector<T> &x, std::vector<T> &y, std::vector<T> &c, bool label = false,
-                               bool continuous_coloring = false)
+        PlotMsg::Trace contour(
+            std::vector<T> &x, std::vector<T> &y, std::vector<T> &c, bool label = false,
+            bool continuous_coloring = false
+        )
         {
             auto trace = PlotMsg::Trace(  //
                 PlotlyTrace::graph_objects, "Contour",
@@ -99,7 +108,8 @@ namespace PlotMsg
                     "x", x,           //
                     "y", y,           //
                     "z", c            //
-                    ));
+                )
+            );
             if (continuous_coloring)
                 trace["contours_coloring"] = "heatmap";  // can also be 'lines', or 'none'
             if (label)
@@ -114,12 +124,14 @@ namespace PlotMsg
         template <typename T>
         PlotMsg::Trace heatmap(std::vector<T> &x, std::vector<T> &y, std::vector<T> &c)
         {
-            return PlotMsg::Trace(PlotlyTrace::graph_objects, "Heatmap",
-                                  PlotMsg::Dictionary(  //
-                                      "x", x,           //
-                                      "y", y,           //
-                                      "z", c            //
-                                      ));
+            return PlotMsg::Trace(
+                PlotlyTrace::graph_objects, "Heatmap",
+                PlotMsg::Dictionary(  //
+                    "x", x,           //
+                    "y", y,           //
+                    "z", c            //
+                )
+            );
         }
 
         /**
@@ -131,7 +143,8 @@ namespace PlotMsg
          * @return a trace that contain the formatted edges
          */
         template <size_t StateDimNum, typename T>
-        PlotMsg::Trace edges(const std::array<std::vector<std::pair<T, T>>, StateDimNum> &pair_of_edges_across_dim)
+        PlotMsg::Trace
+        edges(const std::array<std::vector<std::pair<T, T>>, StateDimNum> &pair_of_edges_across_dim)
         {
             static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
 
@@ -149,8 +162,12 @@ namespace PlotMsg
             {
                 for (int d = 0; d < StateDimNum; ++d)
                 {
-                    seriesAny_vector_push_back(edge_series[d], pair_of_edges_across_dim[d][i].first);
-                    seriesAny_vector_push_back(edge_series[d], pair_of_edges_across_dim[d][i].second);
+                    seriesAny_vector_push_back(
+                        edge_series[d], pair_of_edges_across_dim[d][i].first
+                    );
+                    seriesAny_vector_push_back(
+                        edge_series[d], pair_of_edges_across_dim[d][i].second
+                    );
                     seriesAny_vector_push_back(edge_series[d], PlotMsg::NullValue);
                 }
             }
@@ -170,12 +187,13 @@ namespace PlotMsg
                 "hoverinfo", "none",                           //
                 "mode", "lines+markers",                       //
                 "marker_size", 1                               //
-                ));
+            ));
             return trace;
         }
 
         template <typename T>
-        PlotMsg::Trace edges(const std::vector<std::pair<T, T>> &x, const std::vector<std::pair<T, T>> &y)
+        PlotMsg::Trace
+        edges(const std::vector<std::pair<T, T>> &x, const std::vector<std::pair<T, T>> &y)
         {
             return edges<2, T>({x, y});
         }
@@ -204,7 +222,8 @@ namespace PlotMsg
                     "marker_color", std::vector<int>(),  // why?
                     "marker_size", 10,                   //
                     "marker_line_width", 2               //
-                    ));
+                )
+            );
             return trace;
         }
 
@@ -215,8 +234,10 @@ namespace PlotMsg
         }
 
         template <size_t StateDimNum, typename T1, typename T2>
-        PlotMsg::Trace vertices_with_colour(const std::array<std::vector<T1>, StateDimNum> &nodes_across_dim,
-                                            const std::vector<T2> &c)
+        PlotMsg::Trace vertices_with_colour(
+            const std::array<std::vector<T1>, StateDimNum> &nodes_across_dim,
+            const std::vector<T2> &c
+        )
         {
             auto trace = vertices<StateDimNum, T1>(nodes_across_dim);
             auto overriding_dict = PlotMsg::Dictionary(  //
@@ -232,7 +253,8 @@ namespace PlotMsg
         }
 
         //        template <typename T1, typename T2>
-        //        PlotMsg::Trace vertices_with_colour(const std::vector<T1> &x, const std::vector<T1> &y,
+        //        PlotMsg::Trace vertices_with_colour(const std::vector<T1> &x, const
+        //        std::vector<T1> &y,
         //                                            const std::vector<T2> &c)
         //        {
         //            return vertices_with_colour<2, T1, T2>({x, y}, c);
@@ -246,28 +268,35 @@ namespace PlotMsg
         void set_equal_axis(Figure &fig)
         {
             // set same scale for x and y axis
-            fig.add_command("update_yaxes",
-                            PlotMsg::Dictionary(     //
-                                "scaleanchor", "x",  //
-                                "scaleratio", 1      //
-                                ));
+            fig.add_command(
+                "update_yaxes",
+                PlotMsg::Dictionary(     //
+                    "scaleanchor", "x",  //
+                    "scaleratio", 1      //
+                )
+            );
         }
 
         // the tuple is "stats name", "(x) vec of values' group", "(y) vec of values"
-        template <class Numeric = double, typename = std::enable_if_t<std::is_arithmetic<Numeric>::value, Numeric>>
-        using boxplot_datatype = std::tuple<std::string, std::vector<std::string>, std::vector<Numeric>>;
+        template <
+            class Numeric = double,
+            typename = std::enable_if_t<std::is_arithmetic<Numeric>::value, Numeric>>
+        using boxplot_datatype =
+            std::tuple<std::string, std::vector<std::string>, std::vector<Numeric>>;
 
         template <typename T = double>
         void boxplot(Figure &fig, std::vector<boxplot_datatype<T>> data)
         {
             for (auto &&[plot_name, x_label, y_value] : data)
             {
-                auto dict = PlotMsg::Trace(                 //
-                    PlotlyTrace::graph_objects, "Box",      //
-                    PlotMsg::Dictionary("y", y_value,       // actual values
-                                        "name", plot_name,  // name of that boxplot
-                                        "notched", true     // add notch at median
-                                        ));
+                auto dict = PlotMsg::Trace(             //
+                    PlotlyTrace::graph_objects, "Box",  //
+                    PlotMsg::Dictionary(
+                        "y", y_value,       // actual values
+                        "name", plot_name,  // name of that boxplot
+                        "notched", true     // add notch at median
+                    )
+                );
                 // allows the caller to omit x_label by passing an empty vector
                 if (!x_label.empty())
                     dict["x"] = x_label;

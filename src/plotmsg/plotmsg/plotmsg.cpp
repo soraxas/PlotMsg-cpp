@@ -65,8 +65,10 @@ namespace PlotMsg
             }
             else
             {
-                throw std::runtime_error("Unimplemented DictItemValMsg " +
-                                         std::to_string(static_cast<int>(itemVal.value_case())));
+                throw std::runtime_error(
+                    "Unimplemented DictItemValMsg " +
+                    std::to_string(static_cast<int>(itemVal.value_case()))
+                );
             };
         }
     }
@@ -106,12 +108,14 @@ namespace PlotMsg
         m_msg.set_allocated_fig(new PlotlyFigureMsg());
         set_uuid(m_uuid);
     }
+
     zmq::message_t Figure::build_zmq_msg()
     {
         // serial protobuf to string
         std::string encoded_msg;
 
-        std::cout << "|>" << m_msg.mutable_fig()->mutable_traces()->Get(0).kwargs().data() << std::endl;
+        std::cout << "|>" << m_msg.mutable_fig()->mutable_traces()->Get(0).kwargs().data()
+                  << std::endl;
         m_msg.SerializeToString(&encoded_msg);
         // memcpy to a zmq m_msg
         std::cout << "size   " << encoded_msg.size() << std::endl;
@@ -119,6 +123,7 @@ namespace PlotMsg
         memcpy((void *)zmq_msg.data(), encoded_msg.c_str(), encoded_msg.size());
         return zmq_msg;
     }
+
     std::ostream &operator<<(std::ostream &out, Figure const &fig)
     {
         out << "Figure<" << fig.m_uuid << "|";
@@ -312,8 +317,10 @@ namespace PlotMsg
                 case DictItemValMsg::VALUE_NOT_SET:
                     break;
                 default:
-                    throw std::runtime_error("Unimplemented DictItemValMsg " +
-                                             std::to_string(static_cast<int>(itemVal.value_case())));
+                    throw std::runtime_error(
+                        "Unimplemented DictItemValMsg " +
+                        std::to_string(static_cast<int>(itemVal.value_case()))
+                    );
             };
         }
         out << ")";
@@ -326,6 +333,7 @@ namespace PlotMsg
     {
         m_kwargs.set_kwargs(kwargs);
     }
+
     Trace::Trace(PlotlyTrace::CreationMethods method, std::string method_func, Dictionary &&kwargs)
       : m_method(method), m_method_func(std::move(method_func))
     {
@@ -344,16 +352,19 @@ namespace PlotMsg
         vec.emplace_back();
         vec.back().set_null(SeriesAnyMsg_value_NullValue_NULL_VALUE);
     }
+
     void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec, const std::string &val)
     {
         vec.emplace_back();
         vec.back().set_string(val);
     }
+
     void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec, double val)
     {
         vec.emplace_back();
         vec.back().set_double_(val);
     }
+
     void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec, int val)
     {
         vec.emplace_back();

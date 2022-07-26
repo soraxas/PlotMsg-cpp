@@ -11,6 +11,7 @@ namespace PlotMsg
          */
         PlotMsg::DictionaryMsgData &ref_data;
         std::string m_key;
+
         IndexAccessProxy(PlotMsg::DictionaryMsgData &ref_data, std::string key)
           : ref_data(ref_data), m_key(std::move(key))
         {

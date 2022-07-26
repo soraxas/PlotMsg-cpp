@@ -1,8 +1,8 @@
 #pragma once
 
-#include <thread>
-
 #include "helpers.hpp"
+
+#include <thread>
 
 namespace PlotMsg
 {
@@ -15,7 +15,9 @@ namespace PlotMsg
 
         Trace(PlotlyTrace::CreationMethods method, std::string method_func, Dictionary &kwargs);
 
-        Trace(PlotlyTrace::CreationMethods method, std::string method_func, Dictionary &&kwargs = {});
+        Trace(
+            PlotlyTrace::CreationMethods method, std::string method_func, Dictionary &&kwargs = {}
+        );
 
         IndexAccessProxy operator[](const std::string &key) const
         {

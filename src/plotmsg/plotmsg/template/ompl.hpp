@@ -1,8 +1,7 @@
 #pragma once
 
-#include <ompl/base/PlannerData.h>
-
 #include "plotmsg/template/core.hpp"
+#include <ompl/base/PlannerData.h>
 
 namespace PlotMsg
 {
@@ -13,7 +12,8 @@ namespace PlotMsg
         namespace og = ompl::geometric;
 
         template <size_t StateDimNum, typename T = double>
-        using StateTransformationFunc_t = std::function<std::array<T, StateDimNum>(const ob::State *state)>;
+        using StateTransformationFunc_t =
+            std::function<std::array<T, StateDimNum>(const ob::State *state)>;
 
         /**
          * A template state transformation function that works for states that are RealVector-like.
@@ -42,12 +42,15 @@ namespace PlotMsg
          * optimizingPlanner->getPlannerData(pdata);
          *
          * PlotMsg::Figure fig;
-         * PlotMsg::OmplTemplate::plot_planner_data_graph<ob::RealVectorStateSpace::StateType, 3>(fig, pdata);
+         * PlotMsg::OmplTemplate::plot_planner_data_graph<ob::RealVectorStateSpace::StateType,
+         * 3>(fig, pdata);
          *
          */
         template <size_t StateDimNum, typename T = double>
-        void plot_planner_data_graph(PlotMsg::Figure &fig, const ob::PlannerData &data,
-                                     StateTransformationFunc_t<StateDimNum, T> transformation_func)
+        void plot_planner_data_graph(
+            PlotMsg::Figure &fig, const ob::PlannerData &data,
+            StateTransformationFunc_t<StateDimNum, T> transformation_func
+        )
         {
             // plot all edges
             std::array<std::vector<std::pair<double, double>>, StateDimNum> all_edges;
@@ -94,7 +97,10 @@ namespace PlotMsg
                 cs.emplace_back("red");
             }
             fig.add_trace(
-                PlotMsg::TraceTemplate::vertices_with_colour<StateDimNum, double, std::string>(xs_across_dim, cs));
+                PlotMsg::TraceTemplate::vertices_with_colour<StateDimNum, double, std::string>(
+                    xs_across_dim, cs
+                )
+            );
             fig.get_trace(-1)["showlegend"] = false;
         }
 
@@ -102,8 +108,8 @@ namespace PlotMsg
          *  using default real-vector-like state transformation function.
          *
          *  It can be used as follows.
-         *  PlotMsg::OmplTemplate::plot_planner_data_graph<ob::OceanographyStateSpace::StateType, 3>(
-                fig, pdata
+         *  PlotMsg::OmplTemplate::plot_planner_data_graph<ob::OceanographyStateSpace::StateType,
+         3>( fig, pdata
                 );
          *
          * @tparam StateType
@@ -124,9 +130,11 @@ namespace PlotMsg
          * Assume the given path have a 2-dimensional state
          * */
         template <size_t StateDimNum, typename T = double>
-        void plot_path(PlotMsg::Figure &fig, const og::PathGeometric &path,
-                       StateTransformationFunc_t<StateDimNum, T> transformation_func, std::string colour = "blue",
-                       std::string name = "solution")
+        void plot_path(
+            PlotMsg::Figure &fig, const og::PathGeometric &path,
+            StateTransformationFunc_t<StateDimNum, T> transformation_func,
+            std::string colour = "blue", std::string name = "solution"
+        )
         {
             std::array<std::vector<T>, StateDimNum> xs_across_dim;
             std::vector<std::string> cs;
@@ -152,7 +160,8 @@ namespace PlotMsg
          * using default real-vector-like state transformation function
          *
          * It can be used as follows.
-         * PlotMsg::OmplTemplate::plot_path<ob::OceanographyStateSpace::StateType, 3>(fig, *sol_path);
+         * PlotMsg::OmplTemplate::plot_path<ob::OceanographyStateSpace::StateType, 3>(fig,
+         * *sol_path);
          *
          * @tparam StateDimNum
          * @tparam T
@@ -163,8 +172,10 @@ namespace PlotMsg
          * @param name
          */
         template <typename StateType, size_t StateDimNum, typename T = double>
-        void plot_path(PlotMsg::Figure &fig, const og::PathGeometric &path, std::string colour = "blue",
-                       std::string name = "solution")
+        void plot_path(
+            PlotMsg::Figure &fig, const og::PathGeometric &path, std::string colour = "blue",
+            std::string name = "solution"
+        )
         {
             StateTransformationFunc_t<StateDimNum, T> func =
                 RealVectorLikeStateTransformationFunc<StateType, StateDimNum, T>;
