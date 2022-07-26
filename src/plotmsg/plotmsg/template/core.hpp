@@ -48,8 +48,8 @@ namespace PlotMsg
             );
         }
 
-        template <unsigned int StateDimNum, typename T>
-        PlotMsg::Trace scatter(const std::vector<std::vector<T>> &points_across_dim)
+        template <size_t StateDimNum, typename T>
+        PlotMsg::Trace scatter(const std::array<std::vector<T>, StateDimNum> &points_across_dim)
         {
             static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
 
@@ -130,8 +130,8 @@ namespace PlotMsg
          *        data point (1,5) connects to (2,6) and (3, 7) connects to (4,8)
          * @return a trace that contain the formatted edges
          */
-        template <unsigned int StateDimNum, typename T>
-        PlotMsg::Trace edges(const std::vector<std::vector<std::pair<T, T>>> &pair_of_edges_across_dim)
+        template <size_t StateDimNum, typename T>
+        PlotMsg::Trace edges(const std::array<std::vector<std::pair<T, T>>, StateDimNum> &pair_of_edges_across_dim)
         {
             static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
 
@@ -168,7 +168,8 @@ namespace PlotMsg
                 "line_width", 0.5,                             //
                 "line_color", "#888",                          //
                 "hoverinfo", "none",                           //
-                "mode", "lines"                                //
+                "mode", "lines+markers",                       //
+                "marker_size", 1                               //
                 ));
             return trace;
         }
@@ -187,8 +188,8 @@ namespace PlotMsg
          *        data point (1,5) connects to (2,6) and (3, 7) connects to (4,8)
          * @return a trace that contain the formatted edges
          */
-        template <unsigned int StateDimNum, typename T>
-        PlotMsg::Trace vertices(const std::vector<std::vector<T>> &nodes_across_dim)
+        template <size_t StateDimNum, typename T>
+        PlotMsg::Trace vertices(const std::array<std::vector<T>, StateDimNum> &nodes_across_dim)
         {
             static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
 
@@ -213,17 +214,17 @@ namespace PlotMsg
             return vertices<2>({x, y});
         }
 
-        template <unsigned int StateDimNum, typename T1, typename T2>
-        PlotMsg::Trace vertices_with_colour(const std::vector<std::vector<T1>> &nodes_across_dim,
+        template <size_t StateDimNum, typename T1, typename T2>
+        PlotMsg::Trace vertices_with_colour(const std::array<std::vector<T1>, StateDimNum> &nodes_across_dim,
                                             const std::vector<T2> &c)
         {
             auto trace = vertices<StateDimNum, T1>(nodes_across_dim);
-            auto overriding_dict = PlotMsg::Dictionary(       //
-                "marker_color", c,                            //
-                "marker_colorbar_thickness", 15,              //
-                "marker_colorbar_title", "Node Connections",  //
-                "marker_colorbar_xanchor", "left",            //
-                "marker_colorbar_titleside", "right"          //
+            auto overriding_dict = PlotMsg::Dictionary(  //
+                "marker_color", c,                       //
+                "marker_colorbar_thickness", 15,         //
+                "marker_colorbar_title", "Vertices",     //
+                "marker_colorbar_xanchor", "left",       //
+                "marker_colorbar_titleside", "right"     //
 
             );
             trace.m_kwargs.update_kwargs(overriding_dict);
