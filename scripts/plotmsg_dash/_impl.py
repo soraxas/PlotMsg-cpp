@@ -458,6 +458,10 @@ class PlotMsgPlotly:
                 import plotly.figure_factory
 
                 traces.extend(getattr(plotly.figure_factory, func)(**t["kwargs"]).data)
+            elif method == "plotmsg_custom":
+                from . import custom_plotting_func
+
+                traces.extend(getattr(custom_plotting_func, func)(**t["kwargs"]))
             else:
                 raise NotImplementedError(method)
             self.ctx_mgr_pbar.add()  # update progress

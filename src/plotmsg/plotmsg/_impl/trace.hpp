@@ -49,6 +49,12 @@ namespace PlotMsg
             m_method_func = trace.m_method_func;
         }
 
+        // implicit conversion from a single trace to a list of traces (with one item)
+        operator std::vector<Trace>() const
+        {
+            return {*this};
+        }
+
         friend std::ostream &operator<<(std::ostream &out, Trace const &fig);
 
         PlotlyTrace::CreationMethods m_method;

@@ -2,6 +2,8 @@
 
 #include "plotmsg/main.hpp"
 
+#include <cmath>
+
 /*
  * Implements tempalte message for easy usage
  */
@@ -68,32 +70,6 @@ namespace PlotMsg
             PlotMsg::Trace trace = scatter(x, y);
             trace["marker_color"] = c;
             return trace;
-        }
-
-        template <typename T>
-        PlotMsg::Trace
-        vector_field(std::vector<T> &x, std::vector<T> &y, std::vector<T> &u, std::vector<T> &v)
-        {
-            return PlotMsg::Trace(
-                PlotlyTrace::figure_factory, "create_quiver",
-                PlotMsg::Dictionary(    //
-                    "x", x,             //
-                    "y", y,             //
-                    "u", u,             //
-                    "v", v,             //
-                    "scale", .25,       //
-                    "arrow_scale", .4,  //
-                    "name", "quiver",   //
-                    "line_width", 1     //
-                )
-            );
-        }
-
-        // alias of vector field
-        template <typename... T>
-        PlotMsg::Trace quiver(T... args)
-        {
-            return vector_field(args...);
         }
 
         template <typename T>
@@ -230,7 +206,7 @@ namespace PlotMsg
         template <typename T>
         PlotMsg::Trace vertices(const std::vector<T> &x, const std::vector<T> &y)
         {
-            return vertices<2>({x, y});
+            return vertices<2, T>({x, y});
         }
 
         template <size_t StateDimNum, typename T1, typename T2>
@@ -259,6 +235,201 @@ namespace PlotMsg
         //        {
         //            return vertices_with_colour<2, T1, T2>({x, y}, c);
         //        }
+
+        enum VectorFieldType
+        {
+            cone,
+            line_segments
+        };
+
+        template <
+            typename T, size_t StateDimNum, VectorFieldType vectorFieldType = VectorFieldType::cone>
+        std::vector<PlotMsg::Trace> vector_field(
+            std::array<std::vector<T>, StateDimNum> &origin,
+            std::array<std::vector<T>, StateDimNum> &vectors, double scale = 1
+        )
+        {
+            static_assert(StateDimNum == 2 || StateDimNum == 3, "Not supported");
+
+            if (StateDimNum == 2)
+            {
+                return PlotMsg::Trace(
+                    PlotlyTrace::figure_factory, "create_quiver",
+                    PlotMsg::Dictionary(    //
+                        "x", origin[0],     //
+                        "y", origin[1],     //
+                        "u", vectors[0],    //
+                        "v", vectors[1],    //
+                        "scale", .25,       //
+                        "arrow_scale", .4,  //
+                        "name", "quiver",   //
+                        "line_width", 1     //
+                    )
+                );
+            }
+            else if (StateDimNum == 3)
+            {
+                switch (vectorFieldType)
+                {
+                    case VectorFieldType::cone:
+                    {
+                        return PlotMsg::Trace(
+                            PlotlyTrace::graph_objects, "Cone",
+                            PlotMsg::Dictionary(         //
+                                "x", origin[0],          //
+                                "y", origin[1],          //
+                                "z", origin[2],          //
+                                "u", vectors[0],         //
+                                "v", vectors[1],         //
+                                "w", vectors[2],         //
+                                "sizemode", "absolute",  //
+                                "sizeref", 2,            //
+                                "name", "quiver"         //
+                                //                        "line_width", 1          //
+                            )
+                        );
+                    }
+
+                    case VectorFieldType::line_segments:
+                    {
+                        return PlotMsg::Trace(
+                            PlotMsg::PlotlyTrace::plotmsg_custom, "vector_field",
+                            PlotMsg::Dictionary(  //
+                                "x", origin[0],   //
+                                "y", origin[1],   //
+                                "z", origin[2],   //
+                                "u", vectors[0],  //
+                                "v", vectors[1],  //
+                                "w", vectors[2],  //
+                                "scale", scale
+                            )
+                        );
+                    }
+                        /*
+                        {
+                            auto bounds0 = get_bounding_element(origin[0]);
+                            auto bounds1 = get_bounding_element(origin[1]);
+                            auto bounds2 = get_bounding_element(origin[2]);
+
+                            T max_bounds = std::max(
+                                bounds0.second.second - bounds0.second.first,
+                                bounds1.second.second - bounds1.second.first
+                            );
+                            max_bounds =
+                                std::max(max_bounds, bounds2.second.second - bounds2.second.first);
+
+                            //////////////
+                            //                    double scale = std::pow(
+                            // ((bounds0.second.second -
+                            // bounds0.second.first) *
+                            // (bounds1.second.second -
+                            // bounds1.second.first) *
+                            // (bounds2.second.second -
+                            // bounds2.second.first)),
+                            //                                       1 / 3
+                            //                                   ) *
+                            //                                   10;
+
+                            size_t n_datapoints = origin[0].size();
+                            // use edge to build a vector field
+                            std::array<std::vector<std::pair<T, T>>, StateDimNum>
+                                pair_of_edges_across_dim;
+
+                            // stores the norms of the vector
+                            std::vector<T> norms(n_datapoints);
+                            // stores the directional unit vector
+                            std::array<std::vector<T>, StateDimNum> directional_vector;
+                            for (size_t d = 0; d < StateDimNum; ++d)
+                            {
+                                directional_vector[d].resize(n_datapoints);
+                            }
+                            //                    sizeref = 1;
+
+                            for (size_t i = 0; i < n_datapoints; ++i)
+                            {
+                                norms[i] = 0;
+                                for (size_t d = 0; d < StateDimNum; ++d)
+                                {
+                                    T endpoint = origin[d][i] + vectors[d][i] * scale;
+                                    pair_of_edges_across_dim[d].emplace_back(
+                                        origin[d][i], endpoint
+                                    );
+
+                                    directional_vector[d][i] = endpoint - origin[d][i];
+                                    norms[i] += std::pow(vectors[d][i], 2);
+                                }
+                                norms[i] = std::sqrt(norms[i]);
+                            }
+                            auto line_trace = edges(pair_of_edges_across_dim);
+                            line_trace.m_kwargs.update_kwargs(PlotMsg::Dictionary(
+                                //
+                                "line_width", 5,  // "line_color", norms,
+                                // "mode", "lines", // "line_showscale",
+                                true,                               //
+                                "line_colorscale", "viridis",       //
+                                "line_colorbar_thickness", 15,      //
+                                "line_colorbar_title", "line",      //
+                                "line_colorbar_xanchor", "left",    //
+                                "line_colorbar_titleside", "right"  //
+                            ));
+
+                            for (size_t d = 0; d < StateDimNum; ++d)
+                            {
+                                for (size_t i = 0; i < n_datapoints; ++i)
+                                {
+                                    directional_vector[d][i] /= norms[i];
+                                }
+                            }
+
+                            //                    auto vec =
+                            PlotMsg::seriesAny_vector_create();
+                            //
+                            // PlotMsg::seriesAny_vector(vec, 0, "grey");
+
+                            std::string color = "grey";
+                            //                    auto colorscale_msg =
+                            // PlotMsg::seriesAny_vector_create();
+                            std::vector<std::vector<SeriesAnyMsg_value>> colorscale;
+                            {
+                                auto vec = PlotMsg::seriesAny_vector_create();
+                                PlotMsg::seriesAny_vector_push_back(vec, 0);
+                                PlotMsg::seriesAny_vector_push_back(vec, "grey");
+                                colorscale.push_back(vec);
+                            }
+                            {
+                                auto vec = PlotMsg::seriesAny_vector_create();
+                                PlotMsg::seriesAny_vector_push_back(vec, 1);
+                                PlotMsg::seriesAny_vector_push_back(vec, "grey");
+                                colorscale.push_back(vec);
+                            }
+
+                            auto arrow_head_trace = PlotMsg::Trace(
+                                PlotlyTrace::graph_objects, "Cone",
+                                PlotMsg::Dictionary(             //
+                                    "x", origin[0],              //
+                                    "y", origin[1],              //
+                                    "z", origin[2],              //
+                                    "u", directional_vector[0],  //
+                                    "v", directional_vector[1],  //
+                                    "w", directional_vector[2],  //
+                                    "anchor", "tip",             //
+                                    "sizemode", "scaled",        //
+                                    "sizeref", 2,                //
+                                    // "colorscale", {{0, "grey"}, {1,
+                                    // "grey"}}, "colorscale",
+                                    // colorscale,
+
+                                    //                            //
+                                    "showscale", false  //
+                                )
+                            );
+
+                            return {line_trace, arrow_head_trace};
+                        }
+                        */
+                }
+            }
+        }
 
     }  // namespace TraceTemplate
 

@@ -14,6 +14,8 @@
 
 namespace PlotMsg
 {
+    using NullValueType = PlotMsgProto::NullValue;
+    NullValueType NullValue = PlotMsgProto::NULL_VALUE;
 
     // easy alias
     using DictionaryMsgData = google::protobuf::Map<std::string, PlotMsgProto::DictItemValMsg>;

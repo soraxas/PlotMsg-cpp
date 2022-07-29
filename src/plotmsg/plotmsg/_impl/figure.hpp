@@ -35,6 +35,18 @@ namespace PlotMsg
             add_trace(trace);
         }
 
+        void add_trace(std::vector<Trace> &traces)
+        {
+            for (auto &&trace : traces)
+                add_trace(trace);
+        }
+
+        // r-value
+        void add_trace(std::vector<Trace> &&trace)
+        {
+            add_trace(trace);
+        }
+
         // perfect forward all arguments to create trace
         template <typename... Ts>
         void add_trace(Ts... args)

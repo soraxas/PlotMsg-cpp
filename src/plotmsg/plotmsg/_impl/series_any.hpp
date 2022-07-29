@@ -4,13 +4,6 @@
 
 namespace PlotMsg
 {
-    enum NullValueType
-    {
-        value
-    };
-
-    NullValueType NullValue = NullValueType::value;
-
     std::vector<SeriesAnyMsg_value> seriesAny_vector_create()
     {
         return std::vector<SeriesAnyMsg_value>();

@@ -225,6 +225,11 @@ namespace PlotMsg
         return series;
     }
 
+    void _set_DictItemVal(DictItemValMsg &item_val, NullValueType null)
+    {
+        item_val.set_null(null);
+    }
+
     void _set_DictItemVal(DictItemValMsg &item_val, bool value)
     {
         item_val.set_bool_(value);
@@ -350,7 +355,8 @@ namespace PlotMsg
     {
         // set null value
         vec.emplace_back();
-        vec.back().set_null(SeriesAnyMsg_value_NullValue_NULL_VALUE);
+        vec.back().set_null(PlotMsg::NullValue);
+        //        vec.back().set_null(PlotMsgProto::NULL_VALUE);
     }
 
     void seriesAny_vector_push_back(std::vector<SeriesAnyMsg_value> &vec, const std::string &val)

@@ -108,9 +108,8 @@ namespace PlotMsg
          *  using default real-vector-like state transformation function.
          *
          *  It can be used as follows.
-         *  PlotMsg::OmplTemplate::plot_planner_data_graph<ob::OceanographyStateSpace::StateType,
-         3>( fig, pdata
-                );
+         *  PlotMsg::OmplTemplate::plot_planner_data_graph<ob::OceanographyStateSpace::StateType, 3>
+         *    (fig, pdata);
          *
          * @tparam StateType
          * @tparam StateDimNum

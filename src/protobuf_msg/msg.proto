@@ -15,12 +15,13 @@ message SeriesStringMsg {
   repeated string data = 1;
 }
 
+enum NullValue {
+  // Null value.
+  NULL_VALUE = 0;
+}
+
 message SeriesAnyMsg {
   message value {
-    enum NullValue {
-      // Null value.
-      NULL_VALUE = 0;
-    }
     oneof value {
       NullValue null = 1;
       int32     int = 2;
@@ -42,6 +43,7 @@ message DictItemValMsg {
     bool         bool = 7;
     SeriesStringMsg series_string = 8;
     SeriesAnyMsg    series_any = 9;
+    NullValue null = 10;
   }
 }
 
@@ -54,7 +56,8 @@ message PlotlyTrace {
     graph_objects = 0;
     figure_factory = 1;
     plotly_express = 2;
-    custom = 3;
+    plotmsg_custom = 3;
+    custom = 4;
   }
   DictionaryMsg kwargs = 1;
   CreationMethods method = 2;

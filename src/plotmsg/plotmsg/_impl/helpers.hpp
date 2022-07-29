@@ -19,6 +19,8 @@ namespace PlotMsg
     SeriesAnyMsg *vec_to_allocated_seriesAny(std::vector<SeriesAnyMsg_value> value);
 
     // helper function to assign given DictItemValMsg with T value
+    void _set_DictItemVal(DictItemValMsg &item_val, NullValueType null);
+
     void _set_DictItemVal(DictItemValMsg &item_val, bool value);
 
     void _set_DictItemVal(DictItemValMsg &item_val, double value);
@@ -46,5 +48,33 @@ namespace PlotMsg
     void _set_DictItemVal(DictItemValMsg &item_val, PlotMsg::Dictionary &&value);
 
     void _deep_copy_helper(const DictionaryMsgData &ori_dict, DictionaryMsgData &new_dict);
+
+    // get min and max of an element in a std vector at the same time
+    template <typename T>
+    std::pair<std::pair<size_t, size_t>, std::pair<T, T>>
+    get_bounding_element(const std::vector<T> &vector)
+    {
+        size_t min_index = 0;
+        size_t max_index = 0;
+        T min_element = std::numeric_limits<T>::max();
+        T max_element = std::numeric_limits<T>::min();
+        assert(vector.size() > 0);
+
+        for (size_t i = 0; i < vector.size(); ++i)
+        {
+            const T &candidate = vector[i];
+            if (candidate < min_element)
+            {
+                min_element = candidate;
+                min_index = i;
+            }
+            else if (candidate > max_element)
+            {
+                max_element = candidate;
+                max_index = i;
+            }
+        }
+        return {{min_index, max_index}, {min_element, max_element}};
+    }
 
 }  // namespace PlotMsg
