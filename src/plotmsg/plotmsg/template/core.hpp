@@ -128,6 +128,7 @@ namespace PlotMsg
             size_t _reference_size = pair_of_edges_across_dim[0].size();
 
             std::vector<std::vector<SeriesAnyMsg_value>> edge_series;
+            std::vector<double> edge_weight;
             edge_series.resize(StateDimNum);
             for (int d = 0; d < StateDimNum; ++d)
             {

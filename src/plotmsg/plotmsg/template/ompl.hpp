@@ -51,7 +51,20 @@ namespace PlotMsg
             PlotMsg::Figure &fig, const ob::PlannerData &data,
             StateTransformationFunc_t<StateDimNum, T> transformation_func
         )
+
         {
+            bool plot_edge_color = false;
+            std::vector<double> edge_color;
+            std::shared_ptr<ompl::base::Cost> weight;
+            if (data.hasControls())
+            {
+                // add edge color
+                plot_edge_color = true;
+                edge_color.reserve(data.numEdges() * 3);
+
+                weight = std::make_shared<ompl::base::Cost>();
+            }
+
             // plot all edges
             std::array<std::vector<std::pair<double, double>>, StateDimNum> all_edges;
 
@@ -69,10 +82,23 @@ namespace PlotMsg
                     {
                         all_edges[d].emplace_back(v1_pos[d], v2_pos[d]);
                     }
+                    if (plot_edge_color)
+                    {
+                        bool ok = data.getEdgeWeight(i, j, weight.get());
+                        assert(ok);
+                        for (short i = 0; i < 3; ++i)
+                            edge_color.push_back(weight->value());
+                    }
                 }
             }
             fig.add_trace(PlotMsg::TraceTemplate::edges<StateDimNum>(all_edges));
             fig.get_trace(-1)["name"] = "graph";
+            if (plot_edge_color)
+            {
+                fig.get_trace(-1)["line_color"] = edge_color;
+                fig.get_trace(-1)["line_showscale"] = true;
+                fig.get_trace(-1)["line_width"] = 5;
+            }
 
             // plot start/target
             std::array<std::vector<double>, StateDimNum> xs_across_dim;
@@ -102,6 +128,7 @@ namespace PlotMsg
                 )
             );
             fig.get_trace(-1)["showlegend"] = false;
+            fig.get_trace(-1)["marker_showscale"] = false;
         }
 
         /**
