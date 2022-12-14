@@ -2,6 +2,7 @@
 
 #include "plotmsg/template/core.hpp"
 #include <ompl/base/PlannerData.h>
+#include <ompl/geometric/PathGeometric.h>
 
 namespace PlotMsg
 {
@@ -12,8 +13,49 @@ namespace PlotMsg
         namespace og = ompl::geometric;
 
         template <size_t StateDimNum, typename T = double>
+        struct StateFormatter
+        {
+            virtual std::array<T, StateDimNum> getCoordinate(const ob::State *state) const = 0;
+
+            virtual T getColour(const ob::State *state) const
+            {
+                return 0;
+            }
+
+            virtual bool hasColour() const
+            {
+                return false;
+            }
+
+            virtual bool hasEdgeColour() const
+            {
+                return false;
+            }
+
+            virtual T getEdgeColour(const ob::State *state1, const ob::State *state2) const
+            {
+                return 0;
+            }
+        };
+
+        template <size_t StateDimNum, typename T = double>
+        struct StateFormatterWithColour : public StateFormatter<StateDimNum, T>
+        {
+            virtual bool hasColour() const override
+            {
+                return true;
+            }
+
+            virtual T getColour(const ob::State *state) const override = 0;
+        };
+
+        template <size_t StateDimNum, typename T = double>
         using StateTransformationFunc_t =
             std::function<std::array<T, StateDimNum>(const ob::State *state)>;
+
+        template <size_t StateDimNum, typename T = double>
+        using StateTransformationFuncWithColour_t =
+            std::function<std::pair<std::array<T, StateDimNum>, T>(const ob::State *state)>;
 
         /**
          * A template state transformation function that works for states that are RealVector-like.
@@ -51,7 +93,6 @@ namespace PlotMsg
             PlotMsg::Figure &fig, const ob::PlannerData &data,
             StateTransformationFunc_t<StateDimNum, T> transformation_func
         )
-
         {
             bool plot_edge_color = false;
             std::vector<double> edge_color;
@@ -131,6 +172,96 @@ namespace PlotMsg
             fig.get_trace(-1)["marker_showscale"] = false;
         }
 
+        template <size_t StateDimNum, typename T, typename StateFormatterType>
+        void plot_planner_data_graph_with_colour(
+            PlotMsg::Figure &fig, const ob::PlannerData &data, const StateFormatterType &formatter
+        )
+        {
+            //            static_assert(
+            //                std::is_base_of_v<StateFormatterType, StateFormatter<StateDimNum, T>>,
+            //                // "Incorrect Type"
+            //            );
+
+            std::vector<double> edge_color;
+
+            // plot all edges
+            std::array<std::vector<std::pair<double, double>>, StateDimNum> all_edges;
+
+            std::vector<unsigned int> edgesList;
+            std::vector<T> verticesColour;
+            for (uint i = 0; i < data.numVertices(); ++i)
+            {
+                const auto &v1 = data.getVertex(i);
+                auto v1_pos = formatter.getCoordinate(v1.getState());
+                data.getEdges(i, edgesList);
+                for (auto &&j : edgesList)
+                {
+                    const auto &v2 = data.getVertex(j);
+                    auto v2_pos = formatter.getCoordinate(v2.getState());
+                    for (int d = 0; d < StateDimNum; ++d)
+                    {
+                        all_edges[d].emplace_back(v1_pos[d], v2_pos[d]);
+                    }
+
+                    if (formatter.hasColour() || formatter.hasEdgeColour())
+                    {
+                        T colour1, colour2;
+                        if (formatter.hasEdgeColour())
+                        {
+                            colour1 = formatter.getEdgeColour(v1.getState(), v2.getState());
+                            colour2 = colour1;
+                        }
+                        else
+                        {
+                            colour1 = formatter.getColour(v1.getState());
+                            colour2 = formatter.getColour(v2.getState());
+                        }
+                        edge_color.push_back(colour1);
+                        edge_color.push_back(colour2);
+                        edge_color.push_back(colour2);
+                    }
+                }
+            }
+            fig.add_trace(PlotMsg::TraceTemplate::edges<StateDimNum>(all_edges));
+            fig.get_trace(-1)["name"] = "graph";
+            if (formatter.hasColour())
+            {
+                fig.get_trace(-1)["line_color"] = edge_color;
+            }
+            fig.get_trace(-1)["line_showscale"] = true;
+            fig.get_trace(-1)["line_width"] = 5;
+
+            // plot start/target
+            std::array<std::vector<double>, StateDimNum> xs_across_dim;
+            std::vector<std::string> cs;
+
+            for (uint i = 0; i < data.numStartVertices(); ++i)
+            {
+                auto v_pos = formatter.getCoordinate(data.getStartVertex(i).getState());
+                for (int d = 0; d < StateDimNum; ++d)
+                {
+                    xs_across_dim[d].push_back(v_pos[d]);
+                }
+                cs.emplace_back("green");
+            }
+            for (uint i = 0; i < data.numGoalVertices(); ++i)
+            {
+                auto v_pos = formatter.getCoordinate(data.getGoalVertex(i).getState());
+                for (int d = 0; d < StateDimNum; ++d)
+                {
+                    xs_across_dim[d].push_back(v_pos[d]);
+                }
+                cs.emplace_back("red");
+            }
+            fig.add_trace(
+                PlotMsg::TraceTemplate::vertices_with_colour<StateDimNum, double, std::string>(
+                    xs_across_dim, cs
+                )
+            );
+            fig.get_trace(-1)["showlegend"] = false;
+            fig.get_trace(-1)["marker_showscale"] = false;
+        }
+
         /**
          *  using default real-vector-like state transformation function.
          *
@@ -144,22 +275,22 @@ namespace PlotMsg
          * @param fig
          * @param data
          */
-        template <typename StateType, size_t StateDimNum, typename T = double>
-        void plot_planner_data_graph(PlotMsg::Figure &fig, const ob::PlannerData &data)
-        {
-            StateTransformationFunc_t<StateDimNum, T> func =
-                RealVectorLikeStateTransformationFunc<StateType, StateDimNum, T>;
-            plot_planner_data_graph(fig, data, func);
-        }
+        //        template <typename StateType, size_t StateDimNum, typename T = double>
+        //        void plot_planner_data_graph(PlotMsg::Figure &fig, const ob::PlannerData &data)
+        //        {
+        //            StateTransformationFunc_t<StateDimNum, T> func =
+        //                RealVectorLikeStateTransformationFunc<StateType, StateDimNum, T>;
+        //            plot_planner_data_graph(fig, data, func);
+        //        }
 
         /*
          * Assume the given path have a 2-dimensional state
          * */
-        template <size_t StateDimNum, typename T = double>
+        template <size_t StateDimNum, typename T, typename StateFormatterType>
         void plot_path(
             PlotMsg::Figure &fig, const og::PathGeometric &path,
-            StateTransformationFunc_t<StateDimNum, T> transformation_func,
-            std::string colour = "blue", std::string name = "solution"
+            const StateFormatterType &formatter, std::string colour = "blue",
+            std::string name = "solution"
         )
         {
             std::array<std::vector<T>, StateDimNum> xs_across_dim;
@@ -167,7 +298,7 @@ namespace PlotMsg
 
             for (uint i = 0; i < path.getStateCount(); ++i)
             {
-                std::array<T, StateDimNum> pos = transformation_func(path.getState(i));
+                std::array<T, StateDimNum> pos = formatter.getCoordinate(path.getState(i));
                 for (int d = 0; d < StateDimNum; ++d)
                 {
                     xs_across_dim[d].push_back(pos[d]);

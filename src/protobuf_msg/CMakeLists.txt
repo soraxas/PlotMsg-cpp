@@ -14,6 +14,10 @@ add_dependencies(proto_plotmsg_cpp proto_plotmsg_py)
 target_include_directories(
   proto_plotmsg_cpp PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 
+set_target_properties(
+  proto_plotmsg_cpp PROPERTIES PUBLIC_HEADER "${PROTO_HEADER}")
+
+
 add_custom_command(
   TARGET proto_plotmsg_py
   POST_BUILD

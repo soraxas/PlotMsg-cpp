@@ -25,7 +25,7 @@ target_include_directories(
 
 # Installation setup
 set_target_properties(
-  plotmsg PROPERTIES PUBLIC_HEADER "${HEADER_FILES}"
+  plotmsg PROPERTIES #PUBLIC_HEADER "${HEADER_FILES}"
                      IMPORTED_LINK_DEPENDENT_LIBRARIES "${LINK_LIBARARIES}")
 
 install(
@@ -35,6 +35,20 @@ install(
   PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR}
   INCLUDES
   DESTINATION ${INSTALL_INCLUDE_DIR})
+
+install(DIRECTORY "plotmsg/" # source directory
+        DESTINATION ${INSTALL_INCLUDE_DIR} # target directory
+        FILES_MATCHING # install only matched files
+        PATTERN "*.hpp" # select header files
+)
+
+# install the generated protobuf header
+get_target_property(PROTO_HEADER proto_plotmsg_cpp PUBLIC_HEADER)
+install(FILES ${PROTO_HEADER}
+        DESTINATION ${INSTALL_INCLUDE_DIR}/_impl
+)
+
+# message(FATAL_ERROR ${PROTO_HEADER} )
 
 # Add all targets to the build-tree export set
 export(

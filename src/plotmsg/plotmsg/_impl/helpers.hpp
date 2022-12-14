@@ -1,6 +1,6 @@
 #pragma once
 
-#include <msg.pb.h>
+#include "msg.pb.h"
 
 namespace PlotMsg
 {

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <msg.pb.h>
+#include "msg.pb.h"
+
 #include <zmq.hpp>
 
 #define PLOTMSG_DEFAULT_ADDR "tcp://127.0.0.1:5557"
