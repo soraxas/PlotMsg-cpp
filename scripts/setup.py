@@ -16,6 +16,12 @@ setuptools.setup(
     project_urls={
         "Bug Tracker": "https://github.com/pypa/sampleproject/issues",
     },
+    install_requires=[
+        "protobuf>=4.0",
+        "plotly",
+        "zmq",
+        "ipython",
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
